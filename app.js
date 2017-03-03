@@ -13,20 +13,20 @@ var ExtractJwt = passportJWT.ExtractJwt;
 var JwtStrategy = passportJWT.Strategy;
 //initialize mongoose schemas
 require('./models/models');
+var initPassport = require('./passport-init');
 
 var api = require('./routes/api');
 var authenticate = require('./routes/authenticate')(passport);
 
 //// Initialize Passport
-var initPassport = require('./passport-init');
 
 var app = express();
 
-// var mongoose = require('mongoose'); //add for Mongo support
-// mongoose.connect('mongodb://localhost:27017/video-playlist'); //connect to Mongo
+var mongoose = require('mongoose'); //add for Mongo support
+mongoose.connect('mongodb://localhost:27017/video-playlist'); //connect to Mongo
 
-//var mongoose = require('mongoose'); //add for Mongo support
-//mongoose.connect('mongodb://parshva:parshva@ds161059.mlab.com:61059/heroku_29bk315v'); //connect to Mongo
+// var mongoose = require('mongoose'); //add for Mongo support
+// mongoose.connect('mongodb://parshva:parshva@ds161059.mlab.com:61059/heroku_29bk315v'); //connect to Mongo
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));

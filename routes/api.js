@@ -35,7 +35,7 @@ router.get('/activate_user/:id', function(req, res) {
     });
 });
 //Register the authentication middleware
-router.use('/user', isAuthenticated);
+//router.use('/user', isAuthenticated);
 router.route('/user')
     // //creates a new post
     // .post(function(req, res) {
@@ -52,7 +52,9 @@ router.route('/user')
 // })
 //gets all user
 .get(function(req, res) {
-    User.find(function(err, users) {
+    var query = User.find({}).select({'password':0,'signup_secret':0,'created_at':0,'__v':0});
+
+    query.exec(function(err, users) {
         if (err) {
             return res.status(500).send(err);
         }
