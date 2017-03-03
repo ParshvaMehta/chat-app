@@ -4,50 +4,73 @@ var LocalStrategy = require('passport-local').Strategy;
 var bCrypt = require('bcrypt-nodejs');
 var Mailer = require('./mailer.js');
 var config = require('./config.js');
+var JwtStrategy = require('passport-jwt').Strategy,
+    ExtractJwt = require('passport-jwt').ExtractJwt;
+var opts = {}
+opts.jwtFromRequest = ExtractJwt.fromAuthHeader();
+opts.secretOrKey = 'superdupersecret';
 module.exports = function(passport) {
 
     // Passport needs to be able to serialize and deserialize users to support persistent login sessions
-    passport.serializeUser(function(user, done) {
+    /*passport.serializeUser(function(user, done) {
         console.log('serializing user:', user.username);
         done(null, user._id);
     });
-
     passport.deserializeUser(function(id, done) {
         User.findById(id, function(err, user) {
             console.log('deserializing user:', user.username);
             done(err, user);
         });
-    });
+    });*/
 
-    passport.use('login', new LocalStrategy({
-            passReqToCallback: true
-        },
-        function(req, username, password, done) {
-            // check in mongo if a user with username exists or not
-            User.findOne({ '$or': [{ 'username': username }, { 'email': username }], 'status': { '$ne': 0 } },
-                function(err, user) {
-                    // In case of any error, return using the done method
-                    if (err)
-                        return done(err);
-                    // Username does not exist, log the error and redirect back
-                    if (!user) {
-                        console.log('User Not Found with username ' + username);
-                        return done(null, false);
-                    }
-                    // User exists but wrong password, log the error 
-                    if (!isValidPassword(user, password)) {
-                        console.log('Invalid Password');
-                        return done(null, false); // redirect back to login page
-                    }
-                    // User and password both match, return user from done method
-                    // which will be treated like success
-                    return done(null, user);
-                }
-            );
-        }
-    ));
+    passport.use('jwt', new JwtStrategy(opts, function(jwt_payload, done) {
+        console.log('payload received', jwt_payload);
+        console.log(jwt_payload.id);
+        // check in mongo if a user with username exists or not
+        User.findById(jwt_payload.id, function(err, user) {
+            console.log(user);
+            // In case of any error, return using the done method
+            if (err)
+                return done(err, false);
+            // Username does not exist, log the error and redirect back
+            if (user) {
+                console.log(user);
+                done(null, user);
+            } else {
+                done(null, false);
+                // or you could create a new account
+            }
+        });
+    }));
+    // passport.use('login', new LocalStrategy({
+    //         passReqToCallback: true
+    //     },
+    //     function(req, username, password, done) {
+    //         // check in mongo if a user with username exists or not
+    //         User.findOne({ '$or': [{ 'username': username }, { 'email': username }], 'status': { '$ne': 0 } },
+    //             function(err, user) {
+    //                 // In case of any error, return using the done method
+    //                 if (err)
+    //                     return done(err);
+    //                 // Username does not exist, log the error and redirect back
+    //                 if (!user) {
+    //                     console.log('User Not Found with username ' + username);
+    //                     return done(null, false);
+    //                 }
+    //                 // User exists but wrong password, log the error 
+    //                 if (!isValidPassword(user, password)) {
+    //                     console.log('Invalid Password');
+    //                     return done(null, false); // redirect back to login page
+    //                 }
+    //                 // User and password both match, return user from done method
+    //                 // which will be treated like success
+    //                 return done(null, user);
+    //             }
+    //         );
+    //     }
+    // ));
 
-    passport.use('signup', new LocalStrategy({
+    /*passport.use('signup', new LocalStrategy({
             passReqToCallback: true // allows us to pass back the entire request to the callback
         },
         function(req, username, password, done) {
@@ -88,7 +111,7 @@ module.exports = function(passport) {
                     });
                 }
             });
-        }));
+        }));*/
 
     var isValidPassword = function(user, password) {
         return bCrypt.compareSync(password, user.password);

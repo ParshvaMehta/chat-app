@@ -7,6 +7,10 @@ var bodyParser = require('body-parser');
 var passport = require('passport');
 var session = require('express-session');
 var cors = require('cors')
+var jwt = require('jsonwebtoken');
+var passportJWT = require("passport-jwt");
+var ExtractJwt = passportJWT.ExtractJwt;
+var JwtStrategy = passportJWT.Strategy;
 //initialize mongoose schemas
 require('./models/models');
 
@@ -21,8 +25,8 @@ var app = express();
 // var mongoose = require('mongoose'); //add for Mongo support
 // mongoose.connect('mongodb://localhost:27017/video-playlist'); //connect to Mongo
 
-var mongoose = require('mongoose'); //add for Mongo support
-mongoose.connect('mongodb://parshva:parshva@ds161059.mlab.com:61059/heroku_29bk315v'); //connect to Mongo
+//var mongoose = require('mongoose'); //add for Mongo support
+//mongoose.connect('mongodb://parshva:parshva@ds161059.mlab.com:61059/heroku_29bk315v'); //connect to Mongo
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -43,7 +47,7 @@ app.use(session({
 }));
 //app.use(express.cookieSession()); // Express cookie session middleware 
 app.use(passport.initialize());
-app.use(passport.session());
+//app.use(passport.session());
 initPassport(passport);
 
 

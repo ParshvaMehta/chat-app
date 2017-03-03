@@ -5,34 +5,74 @@ var User = mongoose.model('User');
 var bCrypt = require('bcrypt-nodejs');
 var Mailer = require('../mailer.js');
 var config = require('../config.js');
+var jwt = require('jsonwebtoken');
+var opts = {
+    secretOrKey: 'superdupersecret'
+};
+var JwtStrategy = require('passport-jwt').Strategy,
+    ExtractJwt = require('passport-jwt').ExtractJwt;
+
 
 module.exports = function(passport) {
 
     //sends successful login state back to angular
     router.get('/success_signup', function(req, res) {
-        res.status(200).send({data:{ message: 'Mail has been sent to your email please verify', status: '200' }});
+        res.status(200).send({ data: { message: 'Mail has been sent to your email please verify', status: '200' } });
     });
 
     //sends failure login state back to angular
     router.get('/failure_signup', function(req, res) {
-        res.status(401).send({data:{ status: '401', message: "User already exists" }});
+        res.status(401).send({ data: { status: '401', message: "User already exists" } });
     });
 
     //sends successful login state back to angular
     router.get('/success_login', function(req, res) {
-        res.status(200).send({data:{ message: 'success', status: '200', data: req.user ? req.user : {} }});
+        res.status(200).send({ data: { message: 'success', status: '200', data: req.user ? req.user : {} } });
     });
 
     //sends failure login state back to angular
     router.get('/failure_login', function(req, res) {
-        res.status(401).send({data:{ status: '401', message: "Invalid username or password Or user is not activated" }});
+        res.status(401).send({ data: { status: '401', message: "Invalid username or password Or user is not activated" } });
     });
-
+    router.get("/secret", passport.authenticate('jwt', { session: false }), function(req, res) {
+        res.json({ message: "Success! You can not see this without a token" });
+    });
     //log in
-    router.post('/login', passport.authenticate('login', {
-        successRedirect: '/auth/success_login',
-        failureRedirect: '/auth/failure_login'
-    }));
+    // router.post('/login', passport.authenticate('login', {
+    //     successRedirect: '/auth/success_login',
+    //     failureRedirect: '/auth/failure_login'
+    // }));
+    router.post('/login', function(req, res) {
+        if (req.body.name && req.body.password) {
+            var name = req.body.name;
+            var password = req.body.password;
+        }
+        User.findOne({ '$or': [{ 'username': name }, { 'email': name }], 'status': { '$ne': 0 } }, function(err, user) {
+            // In case of any error, return using the done method
+            console.log(user);
+            if (err)
+                return res.status(500).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+            // Username does not exist, log the error and redirect back
+            if (!user) {
+                console.log('User Not Found with username ' + name);
+                return res.status(401).json({ data: { message: "No user found or user account is deactivated", status: 401 } });
+            }
+            // User exists but wrong password, log the error 
+            if (!isValidPassword(user, password)) {
+                console.log('Invalid Password');
+                return res.status(401).json({ data: { message: "Invalid Password", status: 401 } });
+            }
+            // User and password both match, return user from done method
+            // which will be treated like success
+            if (user) {
+
+                var payload = { id: user.id };
+                var token = jwt.sign(payload, opts.secretOrKey);
+
+                return res.status(200).json({ data: { message: "User found", status: 200, data: user, token: token } });
+            }
+        });
+    });
 
     //sign up
     // router.post('/signup', passport.authenticate('signup', {
@@ -48,12 +88,12 @@ module.exports = function(passport) {
             // In case of any error, return using the done method
             if (err) {
                 console.log('Error in SignUp: ' + err);
-                res.status(500).send({data:{ message: 'something went wrong', status: '500' }});
+                res.status(500).send({ data: { message: 'something went wrong', status: '500' } });
             }
             // already exists
             if (user) {
                 console.log('User already exists with username: ' + req_data.name);
-                res.status(200).send({data:{ message: 'User already exists', status: '200' }});
+                res.status(200).send({ data: { message: 'User already exists', status: '200' } });
             } else {
                 // if there is no user, create the user
                 var newUser = new User();
@@ -75,7 +115,7 @@ module.exports = function(passport) {
                     var body = config.mailConstants.signup_body.replace('[USER_NAME]', newUser.username);
                     body = body.replace('[ACTIVATE_URL]', url);
                     Mailer.sendMail(newUser.email, heder, body);
-                    res.status(200).send({data:{ message: 'Please verify your email', status: '200' }});
+                    res.status(200).send({ data: { message: 'Please verify your email', status: '200' } });
                 });
             }
         });
@@ -87,6 +127,7 @@ module.exports = function(passport) {
     });
 
     var isValidPassword = function(user, password) {
+        console.log(createHash(passport), user.password);
         return bCrypt.compareSync(password, user.password);
     };
 
