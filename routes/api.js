@@ -22,7 +22,7 @@ function isAuthenticated(req, res, next) {
     return res.status(401).send({ status: '401', message: "Unauthorised user!!"});
 };
 
-router.get('/activate_user/:id', function(req, res) {
+router.get('/user/activate_user/:id', function(req, res) {
     var conditions = { _id: req.params.id },
         update = { status: 1, signup_secret: '' },
         options = {};
