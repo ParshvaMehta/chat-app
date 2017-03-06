@@ -31,7 +31,7 @@ router.get('/user/activate_user/:id', function(req, res) {
         if (err) {
             return res.status(500).send(err);
         }
-        return res.status(200).send({ message: 'User has been activated' });
+        return res.status(200).send({data:{ message: 'User has been activated','status': 200}});
     });
 });
 //Register the authentication middleware

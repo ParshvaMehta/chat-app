@@ -22,7 +22,7 @@ module.exports = function(passport) {
 
     //sends failure login state back to angular
     router.get('/failure_signup', function(req, res) {
-        res.status(401).send({ data: { status: '401', message: "User already exists" } });
+        res.status(200).send({ data: { status: '401', message: "User already exists" } });
     });
 
     //sends successful login state back to angular
@@ -32,7 +32,7 @@ module.exports = function(passport) {
 
     //sends failure login state back to angular
     router.get('/failure_login', function(req, res) {
-        res.status(401).send({ data: { status: '401', message: "Invalid username or password Or user is not activated" } });
+        res.status(200).send({ data: { status: '401', message: "Invalid username or password Or user is not activated" } });
     });
     router.get("/secret", passport.authenticate('jwt', { session: false }), function(req, res) {
         res.json({ message: "Success! You can not see this without a token" });
@@ -51,24 +51,22 @@ module.exports = function(passport) {
             // In case of any error, return using the done method
             console.log(user);
             if (err)
-                return res.status(500).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+                return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
             // Username does not exist, log the error and redirect back
             if (!user) {
                 console.log('User Not Found with username ' + name);
-                return res.status(401).json({ data: { message: "No user found or user account is deactivated", status: 401 } });
+                return res.status(200).json({ data: { message: "No user found or user account is deactivated", status: 401 } });
             }
             // User exists but wrong password, log the error 
             if (!isValidPassword(user, password)) {
                 console.log('Invalid Password');
-                return res.status(401).json({ data: { message: "Invalid Password", status: 401 } });
+                return res.status(200).json({ data: { message: "Invalid Password", status: 401 } });
             }
             // User and password both match, return user from done method
             // which will be treated like success
             if (user) {
-
                 var payload = { id: user.id };
                 var token = jwt.sign(payload, opts.secretOrKey);
-
                 return res.status(200).json({ data: { message: "User found", status: 200, data: user, token: token } });
             }
         });
@@ -88,7 +86,7 @@ module.exports = function(passport) {
             // In case of any error, return using the done method
             if (err) {
                 console.log('Error in SignUp: ' + err);
-                res.status(500).send({ data: { message: 'something went wrong', status: '500' } });
+                res.status(200).send({ data: { message: 'something went wrong', status: '500' } });
             }
             // already exists
             if (user) {
@@ -107,16 +105,51 @@ module.exports = function(passport) {
                 newUser.save(function(err) {
                     if (err) {
                         console.log('Error in Saving user: ' + err);
-                        res.status(500).send({ message: 'something went wrong', status: '500' });
+                        res.status(200).send({ message: 'something went wrong', status: '500' });
                         throw err;
                     }
-                    var url = config.constants.server_url + 'api/activate_user/' + newUser.signup_secret;
+                    var url = config.constants.server_url + 'login/' + newUser.signup_secret;
                     var heder = config.mailConstants.signup_header;
                     var body = config.mailConstants.signup_body.replace('[USER_NAME]', newUser.username);
                     body = body.replace('[ACTIVATE_URL]', url);
                     Mailer.sendMail(newUser.email, heder, body);
                     res.status(200).send({ data: { message: 'Please verify your email', status: '200' } });
                 });
+            }
+        });
+    });
+
+    router.post('/forget_password', function(req, res) {
+        var req_data = req.body;
+        console.log(req_data);
+        // find a user in mongo with provided username
+        User.findOne({ '$or': [{ 'username': req_data.name }, { 'email': req_data.email }] }, function(err, user) {
+            // In case of any error, return using the done method
+            if (err) {
+                console.log('Error in SignUp: ' + err);
+                res.status(200).send({ data: { message: 'something went wrong', status: '500' } });
+            }
+            // already exists
+            if (user) {
+                // if there is no user, create the user
+                var new_password = Math.random().toString(36).slice(-8);
+                var conditions = { _id: user._id },
+                    update = { password: createHash(new_password) };
+                User.update(conditions, update, {}, function(err) {
+                    if (err) {
+                        console.log('Error in forget password update paswor of user: ' + err);
+                        res.status(200).send({ message: 'something went wrong', status: '500' });
+                        throw err;
+                    }
+                    var heder = config.mailConstants.forget_password_header;
+                    var body = config.mailConstants.forget_password_body.replace('[USER_NAME]', user.username).replace('[USER_NAME]', user.email).replace('[PASSWORD]', new_password);
+                    Mailer.sendMail(user.email, heder, body);
+                    res.status(200).send({ data: { message: 'Your new password has been sent your mail.', status: 200 } });
+                });
+
+                // });
+            } else {
+                res.status(200).send({ data: { message: 'User not exists', status: '200' } });
             }
         });
     });
