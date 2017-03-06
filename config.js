@@ -2,7 +2,7 @@ module.exports.constants = {
     server_url: 'http://localhost:9000/'
 };
 // module.exports.constants = {
-//     server_url:'https://video-playlist.herokuapp.com/'
+//     server_url:'https://messaging-application.herokuapp.com/#!/login/'
 // };
 module.exports.mailConstants = {
     signup_header: 'Please activate your account',
