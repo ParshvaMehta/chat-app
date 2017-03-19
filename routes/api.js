@@ -5,6 +5,7 @@ var Post = mongoose.model('Post');
 var Mailer = require('../mailer.js');
 var User = mongoose.model('User');
 var VideoPlayList = mongoose.model('VideoPlayList');
+var WaitList = mongoose.model('WaitList');
 var config = require('../config.js');
 var request = require('request');
 var JwtStrategy = require('passport-jwt').Strategy,
@@ -114,14 +115,14 @@ router.route('/user/:id')
             res.json("deleted :(");
         });
     });
-
+/* User Play list api*/
 router.route('/userplaylist/:user_id')
     .get(function(req, res) {
         var user_id = req.params.user_id
         VideoPlayList.find({ user_id: user_id }, function(err, videos) {
             if (err)
                 return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
-            return res.status(200).json({ data: { message: "Playlist found", data: videos, status: 200 } });
+            return res.status(200).json({ message: "Playlist found", data: videos, status: 200 });
         })
     })
 
@@ -197,4 +198,100 @@ router.route('/userplaylist')
             res.status(200).send({ 'message': 'Invalid url', 'status': '200' });
         }
     })
+    /* wait list api*/
+router.route('/waitlist')
+    .get(function(req, res) {
+        WaitList.find({ status: 0 }).populate('videoplaylists_id').sort([
+            ['created_at', 1]
+        ]).limit(50).exec(function(err, waitlist) {
+            if (err)
+                return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+            return res.status(200).json({ data: { message: "Waitlist Found", data: waitlist, status: 200 } });
+        });
+    })
+    .post(function(req, res) {
+        var video_id = req.body.video_id;
+        VideoPlayList.findById(video_id, function(err, videos) {
+            if (err)
+                return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+            if (!videos || videos.length <= 0) {
+                return res.status(200).json({ message: "Video not found", status: 200 });
+            }
+            WaitList.find({ videoplaylists_id: video_id, status: 0 }, function(err, waitlist) {
+                if (err)
+                    return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+                if (waitlist && waitlist.length > 0) {
+                    return res.status(200).json({ message: "This Video is already in Queue!", status: 200 });
+                }
+                var waitList = new WaitList();
+                waitList.videoplaylists_id = video_id;
+                waitList.save(function(err) {
+                    if (err)
+                        return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+                    return res.status(200).json({ message: "Your video added in queue", status: 200 });
+                });
+            });
+        })
+    })
+router.get('/waitlist/current', function(req, res) {
+    WaitList.findOne({ status: 0 }).populate('videoplaylists_id').sort([
+        ['created_at', 1]
+    ]).exec(function(err, current) {
+        if (err)
+            return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+        return res.status(200).json({ data: { message: "Current Video", data: current, status: 200 } });
+    })
+})
+router.get('/waitlist/next/:id', function(req, res) {
+    var current_id = req.params.id;
+    WaitList.findByIdAndUpdate(current_id, { status: 1 }, function(err, currentVideo) {
+        if (err)
+            return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+        WaitList.findOne({ status: 0 }).populate('videoplaylists_id').sort([
+            ['created_at', 1]
+        ]).exec(function(err, current) {
+            if (err)
+                return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+            return res.status(200).json({ data: { message: "Current Video", data: current, status: 200 } });
+        });
+    })
+})
+router.post('/video_remove_from_waitlist', function(req, res) {
+    var user_id = req.body.user_id,
+        video_id = req.body.video_id,
+        waitlist_id = req.body.waitlist_id,
+        user = {};
+    User.findById(user_id, function(err, user) {
+        if (err)
+            return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+        var user_role = user.user_role,
+            canDelete = false;
+        if (user_role == 1 || user_role == 2) {
+            WaitList.remove({"_id":waitlist_id}, function(err) {
+                if (err)
+                    return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+                return res.status(200).json({ data: { message: "Video has been reomoved from queue", status: 200 } });
+            });
+        }
+        VideoPlayList.findById(video_id, function(err, video) {
+            if (err)
+                return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+
+            if (!video)
+                return res.status(200).json({ data: { message: "No video found", data: video, status: 200 } });
+
+            if (video.user_id == user_id) {
+                WaitList.remove({"_id":waitlist_id}, function(err) {
+                    if (err)
+                        return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+                    return res.status(200).json({ data: { message: "Video has been reomoved from queue", status: 200 } });
+                });
+            } else {
+                return res.status(200).json({ data: { message: "You no permission to delete", status: 200 } });
+            }
+
+        });
+
+    });
+})
 module.exports = router;
