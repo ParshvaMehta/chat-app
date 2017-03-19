@@ -13,10 +13,30 @@ var userSchema = new mongoose.Schema({
     email: String,
     created_at: { type: Date, default: Date.now },
     signup_secret: String,
-    user_role:{ type: Number, default: 0 },
+    user_role: { type: Number, default: 0 },
     status: { type: Number, default: 0 }
 })
 
+var videoPlaylistSchema = new mongoose.Schema({
+    youtube_video_id: String,
+    title: String,
+    thumbnail: String,
+    duration: String,
+    embedHtml: String,
+    user_id: { type: Schema.Types.ObjectId, ref: 'users' },
+    created_at: { type: Date, default: Date.now },
+    upvote: { type: Array, "default": [] },
+    downvote: { type: Array, "default": [] },
+    url: String,
+    status: { type: Number, default: 0 }
+})
+
+var waitList: new mongoose.Schema({
+    videoplaylists_id:{ type: Schema.Types.ObjectId, ref: 'videoplaylists' },
+    created_at: { type: Date, default: Date.now },
+    status: { type: Number, default: 0 }
+})
 
 mongoose.model('Post', postSchema);
 mongoose.model('User', userSchema);
+mongoose.model('VideoPlayList', videoPlaylistSchema);
