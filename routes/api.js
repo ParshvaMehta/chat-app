@@ -267,7 +267,7 @@ router.post('/video_remove_from_waitlist', function(req, res) {
         var user_role = user.user_role,
             canDelete = false;
         if (user_role == 1 || user_role == 2) {
-            WaitList.remove({"_id":waitlist_id}, function(err) {
+            WaitList.remove({ "_id": waitlist_id }, function(err) {
                 if (err)
                     return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
                 return res.status(200).json({ data: { message: "Video has been reomoved from queue", status: 200 } });
@@ -281,7 +281,7 @@ router.post('/video_remove_from_waitlist', function(req, res) {
                 return res.status(200).json({ data: { message: "No video found", data: video, status: 200 } });
 
             if (video.user_id == user_id) {
-                WaitList.remove({"_id":waitlist_id}, function(err) {
+                WaitList.remove({ "_id": waitlist_id }, function(err) {
                     if (err)
                         return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
                     return res.status(200).json({ data: { message: "Video has been reomoved from queue", status: 200 } });
@@ -292,6 +292,15 @@ router.post('/video_remove_from_waitlist', function(req, res) {
 
         });
 
+    });
+})
+router.get('/waitlist/history', function(req, res) {
+    var query = WaitList.find({status:1}).populate('videoplaylists_id').sort({created_at: -1}).skip(0).limit(50)
+    query.exec(function(err, currentVideo) {
+        if (err)
+            return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+
+        return res.status(200).json({ data: { message: "Current Video", data: currentVideo, status: 200 } });
     });
 })
 module.exports = router;
