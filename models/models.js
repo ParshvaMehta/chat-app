@@ -28,8 +28,18 @@ var videoPlaylistSchema = new mongoose.Schema({
     upvote: { type: Array, "default": [] },
     downvote: { type: Array, "default": [] },
     url: String,
-    status: { type: Number, default: 0 }
+    status: { type: Number, default: 0 },
+    userplaylist_id:{ type: Schema.Types.ObjectId, ref: 'Userplaylist' },
+    order:{type: Number, default: 0 }
 })
+
+var userPlaylistSchema = new mongoose.Schema({
+    user_id: { type: Schema.Types.ObjectId, ref: 'User' },
+    name: String,
+    isactive: { type: Boolean, default: false },
+    created_at: { type: Date, default: Date.now },
+    total_video:{ type: Number, default: 0 }
+});
 
 var waitListSchema = new mongoose.Schema({
     videoplaylists_id: { type: Schema.Types.ObjectId, ref: 'VideoPlayList' },
@@ -39,5 +49,6 @@ var waitListSchema = new mongoose.Schema({
 
 mongoose.model('Post', postSchema);
 mongoose.model('User', userSchema);
+mongoose.model('Userplaylist', userPlaylistSchema);
 mongoose.model('VideoPlayList', videoPlaylistSchema);
 mongoose.model('WaitList', waitListSchema);

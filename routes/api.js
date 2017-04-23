@@ -6,6 +6,7 @@ var Mailer = require('../mailer.js');
 var User = mongoose.model('User');
 var VideoPlayList = mongoose.model('VideoPlayList');
 var WaitList = mongoose.model('WaitList');
+var Userplaylist = mongoose.model('Userplaylist');
 var config = require('../config.js');
 var request = require('request');
 var JwtStrategy = require('passport-jwt').Strategy,
@@ -130,6 +131,7 @@ router.route('/userplaylist')
     .post(function(req, res) {
         var url = req.body.url,
             user_id = req.body.user_id,
+            userplaylist_id = req.body.userplaylist_id,
             id,
             validUrl = false;
 
@@ -152,12 +154,11 @@ router.route('/userplaylist')
         if (validUrl) {
             VideoPlayList.find({
                 youtube_video_id: id,
-                user_id: user_id
+                user_id: user_id,
+                userplaylist_id: userplaylist_id
             }, function(err, video) {
-
                 if (err)
                     return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
-                console.log(video);
                 if (video.length > 0) {
                     return res.status(200).json({ data: { message: "Video already exist in your playlist", data: video, status: 200 } });
                 }
@@ -179,16 +180,44 @@ router.route('/userplaylist')
                         playlist.duration = videoData.contentDetails.duration;
                         playlist.embedHtml = videoData.player.embedHtml;
                         playlist.url = url;
-                        playlist.save(function(err) {
-                                if (err) {
-                                    console.log('Error in Saving playlist: ' + err);
-                                    res.status(200).send({ message: 'something went wrong', status: '500' });
-                                    throw err;
-                                }
-                                res.status(200).send({ message: 'Video Added to your playlist', status: '200' });
+                        playlist.userplaylist_id = userplaylist_id;
+                        Userplaylist.findById(userplaylist_id, function(err, userplaylists) {
+                            if (err) {
+                                console.log('Error in Saving playlist: ' + err);
+                                res.status(200).send({ message: 'something went wrong', status: '500' });
+                            }
+                            if (userplaylists) {
+                                var playlist = new VideoPlayList();
+                                playlist.user_id = user_id;
+                                playlist.youtube_video_id = videoData.id;
+                                playlist.title = videoData.snippet.title;
+                                playlist.thumbnail = videoData.snippet.thumbnails.high.url;
+                                playlist.duration = videoData.contentDetails.duration;
+                                playlist.embedHtml = videoData.player.embedHtml;
+                                playlist.url = url;
+                                playlist.userplaylist_id = userplaylist_id;
+                                playlist.order = userplaylists.total_video + 1;
+                                playlist.save(function(err) {
+                                    if (err) {
+                                        console.log('Error in Saving playlist: ' + err);
+                                        res.status(200).send({ message: 'something went wrong', status: '500' });
+                                    }
+                                    Userplaylist.update({ _id: userplaylist_id }, { $inc: { total_video: 1 } }, function(err, u) {
+                                        if (err) {
+                                            console.log('Error in Saving playlist: ' + err);
+                                            res.status(200).send({ message: 'something went wrong', status: '500' });
+                                        }
+                                        res.status(200).send({ message: 'Video Added to your playlist', status: '200' });
+                                    });
+                                });
+                            } else {
+                                return res.status(200).json({ data: { message: "User playlist not found", data: video, status: 200 } });
 
-                            })
-                            // res.status(200).send({ "playlist": playlist, "data": videoData });
+                            }
+
+                            //res.status(200).send({ "playlist": playlist, "data": videoData });
+                        });
+
 
                     });
                 }
@@ -210,28 +239,61 @@ router.route('/waitlist')
         });
     })
     .post(function(req, res) {
-        var video_id = req.body.video_id;
-        VideoPlayList.findById(video_id, function(err, videos) {
+        // var video_id = req.body.video_id,
+        var user_id = new mongoose.mongo.ObjectId(req.body.user_id);
+        Userplaylist.find({ $and: [{ user_id: user_id }, { isactive: true }] }, function(err, userplaylist) {
             if (err)
                 return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
-            if (!videos || videos.length <= 0) {
-                return res.status(200).json({ message: "Video not found", status: 200 });
+            if (!userplaylist || userplaylist.length <= 0) {
+                return res.status(200).json({ message: "No Active playlist found", status: 200 });
             }
-            WaitList.find({ videoplaylists_id: video_id, status: 0 }, function(err, waitlist) {
+            var userplaylist_id = userplaylist[0]._id;
+            VideoPlayList.find({ userplaylist_id: userplaylist_id, order: 1 }, function(err, videos) {
                 if (err)
                     return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
-                if (waitlist && waitlist.length > 0) {
-                    return res.status(200).json({ message: "This Video is already in Queue!", status: 200 });
+                if (!videos || videos.length <= 0) {
+                    return res.status(200).json({ message: "No video found in active playlist", status: 200 });
                 }
-                var waitList = new WaitList();
-                waitList.videoplaylists_id = video_id;
-                waitList.save(function(err) {
+                console.log(videos[0]._id);
+                var videoplaylists_id = videos[0].id;
+                WaitList.find({ videoplaylists_id: videoplaylists_id, status: 0 }, function(err, waitlist) {
                     if (err)
                         return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
-                    return res.status(200).json({ message: "Your video added in queue", status: 200 });
+                    if (waitlist && waitlist.length > 0) {
+                        return res.status(200).json({ message: "You are already in waitlist!", status: 200 });
+                    }
+                    var waitList = new WaitList();
+                    waitList.videoplaylists_id = videoplaylists_id;
+                    waitList.save(function(err) {
+                        if (err)
+                            return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+                        return res.status(200).json({ message: "Your video added in queue", status: 200 });
+                    });
                 });
+                //return res.status(200).json({ message: "Your video added in queue", status: 200, data: videos });
             });
-        })
+        });
+        // VideoPlayList.findById(videoplaylists_id, function(err, videos) {
+        //     if (err)
+        //         return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+        //     if (!videos || videos.length <= 0) {
+        //         return res.status(200).json({ message: "Video not found", status: 200 });
+        //     }
+        //     WaitList.find({ videoplaylists_id: videoplaylists_id, status: 0 }, function(err, waitlist) {
+        //         if (err)
+        //             return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+        //         if (waitlist && waitlist.length > 0) {
+        //             return res.status(200).json({ message: "This Video is already in Queue!", status: 200 });
+        //         }
+        //         var waitList = new WaitList();
+        //         waitList.videoplaylists_id = videoplaylists_id;
+        //         waitList.save(function(err) {
+        //             if (err)
+        //                 return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+        //             return res.status(200).json({ message: "Your video added in queue", status: 200 });
+        //         });
+        //     });
+        // })
     })
 router.get('/waitlist/current', function(req, res) {
     WaitList.findOne({ status: 0 }).populate('videoplaylists_id').sort([
@@ -295,7 +357,7 @@ router.post('/video_remove_from_waitlist', function(req, res) {
     });
 })
 router.get('/waitlist/history', function(req, res) {
-    var query = WaitList.find({status:1}).populate('videoplaylists_id').sort({created_at: -1}).skip(0).limit(50)
+    var query = WaitList.find({ status: 1 }).populate('videoplaylists_id').sort({ created_at: -1 }).skip(0).limit(50)
     query.exec(function(err, currentVideo) {
         if (err)
             return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
@@ -303,4 +365,87 @@ router.get('/waitlist/history', function(req, res) {
         return res.status(200).json({ data: { message: "Current Video", data: currentVideo, status: 200 } });
     });
 })
+router.route('/uservideoplaylist')
+    .post(function(req, res) {
+        var user_id = req.body.user_id,
+            name = req.body.name,
+            userplaylist = new Userplaylist();
+
+        userplaylist.user_id = user_id;
+        userplaylist.name = name;
+        userplaylist.save(function(err) {
+            if (err) {
+                console.log('Error in Saving userplaylist: ' + err);
+                res.status(200).send({ message: 'something went wrong', status: '500' });
+                throw err;
+            }
+            res.status(200).send({ message: 'Playlist create successfully', status: '200' });
+        })
+    });
+router.get('/uservideoplaylist/:user_id', function(req, res) {
+    var user_id = req.params.user_id;
+    Userplaylist.find({ user_id: user_id }).populate('videoplaylists_id').sort([
+        ['created_at', 1]
+    ]).exec(function(err, userplaylist) {
+        if (err)
+            return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+        return res.status(200).json({ data: { message: "userplaylist found", data: userplaylist, status: 200 } });
+    });
+});
+router.get('/uservideoplaylist/active/:user_id/:user_playlist_id', function(req, res) {
+    var user_id = req.params.user_id,
+        user_playlist_id = req.params.user_playlist_id;
+    console.info(user_playlist_id);
+    Userplaylist.update({ user_id: user_id }, { isactive: false }, { multi: true }, function(err, update) {
+        if (err)
+            return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+        Userplaylist.findByIdAndUpdate(user_playlist_id, { $set: { isactive: true } }, function(err, update) {
+            if (err)
+                return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+            return res.status(200).json({ data: { message: "Playlist Activated", status: 200 } });
+        });
+    });
+
+});
+router.get('/video/:user_playlist_id', function(req, res) {
+    var userplaylist_id = req.params.user_playlist_id;
+    VideoPlayList.find({ userplaylist_id: userplaylist_id }).sort([
+        ['order', 1]
+    ]).exec(function(err, videos) {
+        if (err)
+            return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+        return res.status(200).json({ message: "Playlist found", data: videos, status: 200 });
+    })
+});
+router.get('/video/reoder/:userplaylist_id/:videoplaylists_id/:old_order_id/:new_order_id', function(req, res) {
+    var videoplaylists_id = req.params.videoplaylists_id,
+        old_order_id = req.params.old_order_id,
+        new_order_id = req.params.new_order_id,
+        userplaylist_id = req.params.userplaylist_id;
+    if (old_order_id > new_order_id) {
+        VideoPlayList.update({ order: { $gte: new_order_id }, userplaylist_id: userplaylist_id }, { $inc: { order: 1 } }, { multi: true }, function(err) {
+            if (err)
+                return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+            VideoPlayList.update({ _id: videoplaylists_id }, { order: new_order_id }, function(err, videos) {
+                if (err)
+                    return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+                return res.status(200).json({ message: "Order  Updated", status: 200 });
+            });
+        })
+    } else if (old_order_id < new_order_id) {
+        VideoPlayList.update({ order: { $lte: new_order_id }, userplaylist_id: userplaylist_id }, { $inc: { order: -1 } }, { multi: true }, function(err) {
+            if (err)
+                return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+            VideoPlayList.update({ _id: videoplaylists_id }, { order: new_order_id }, function(err, videos) {
+                if (err)
+                    return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+                return res.status(200).json({ message: "Order  Updated", status: 200 });
+            });
+        })
+    } else {
+        return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+    }
+
+
+});
 module.exports = router;
