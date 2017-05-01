@@ -417,11 +417,12 @@ router.get('/video/:user_playlist_id', function(req, res) {
         return res.status(200).json({ message: "Playlist found", data: videos, status: 200 });
     })
 });
-router.get('/video/reoder/:userplaylist_id/:videoplaylists_id/:old_order_id/:new_order_id', function(req, res) {
-    var videoplaylists_id = req.params.videoplaylists_id,
-        old_order_id = req.params.old_order_id,
-        new_order_id = req.params.new_order_id,
-        userplaylist_id = req.params.userplaylist_id;
+//router.post('/video/reoder/:userplaylist_id/:videoplaylists_id/:old_order_id/:new_order_id', function(req, res) {
+router.post('/video/reorder', function(req, res) {
+    var videoplaylists_id = req.body.videoplaylists_id,
+        old_order_id = req.body.old_order_id,
+        new_order_id = req.body.new_order_id,
+        userplaylist_id = req.body.userplaylist_id;
     if (old_order_id > new_order_id) {
         VideoPlayList.update({ order: { $gte: new_order_id }, userplaylist_id: userplaylist_id }, { $inc: { order: 1 } }, { multi: true }, function(err) {
             if (err)
