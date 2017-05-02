@@ -424,7 +424,8 @@ router.post('/video/reorder', function(req, res) {
         new_order_id = req.body.new_order_id,
         userplaylist_id = req.body.userplaylist_id;
     if (old_order_id > new_order_id) {
-        VideoPlayList.update({ order: { $gte: new_order_id }, userplaylist_id: userplaylist_id }, { $inc: { order: 1 } }, { multi: true }, function(err) {
+
+        VideoPlayList.update({ order: { $gte: new_order_id, $lt:old_order_id }, userplaylist_id: userplaylist_id }, { $inc: { order: 1 } }, { multi: true }, function(err) {
             if (err)
                 return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
             VideoPlayList.update({ _id: videoplaylists_id }, { order: new_order_id }, function(err, videos) {
@@ -434,7 +435,7 @@ router.post('/video/reorder', function(req, res) {
             });
         })
     } else if (old_order_id < new_order_id) {
-        VideoPlayList.update({ order: { $lte: new_order_id }, userplaylist_id: userplaylist_id }, { $inc: { order: -1 } }, { multi: true }, function(err) {
+        VideoPlayList.update({ order: { $lte: new_order_id , $gt:old_order_id }, userplaylist_id: userplaylist_id }, { $inc: { order: -1 } }, { multi: true }, function(err) {
             if (err)
                 return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
             VideoPlayList.update({ _id: videoplaylists_id }, { order: new_order_id }, function(err, videos) {
