@@ -1,12 +1,14 @@
 var socket_io = require('socket.io');
 var io = socket_io();
+var mongoose = require('mongoose');
+var User = mongoose.model('User');
+var groupChat = mongoose.model('groupChat');
 var socketApi = {};
 
 socketApi.io = io;
 
 io.on('connection', function(socket) {
     console.log('A user connected');
-    
 });
 
 io.on('disconnect', function() {

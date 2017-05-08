@@ -7,6 +7,7 @@ var User = mongoose.model('User');
 var VideoPlayList = mongoose.model('VideoPlayList');
 var WaitList = mongoose.model('WaitList');
 var Userplaylist = mongoose.model('Userplaylist');
+var groupChat = mongoose.model('groupChat');
 var config = require('../config.js');
 var request = require('request');
 var JwtStrategy = require('passport-jwt').Strategy,
@@ -425,7 +426,7 @@ router.post('/video/reorder', function(req, res) {
         userplaylist_id = req.body.userplaylist_id;
     if (old_order_id > new_order_id) {
 
-        VideoPlayList.update({ order: { $gte: new_order_id, $lt:old_order_id }, userplaylist_id: userplaylist_id }, { $inc: { order: 1 } }, { multi: true }, function(err) {
+        VideoPlayList.update({ order: { $gte: new_order_id, $lt: old_order_id }, userplaylist_id: userplaylist_id }, { $inc: { order: 1 } }, { multi: true }, function(err) {
             if (err)
                 return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
             VideoPlayList.update({ _id: videoplaylists_id }, { order: new_order_id }, function(err, videos) {
@@ -435,7 +436,7 @@ router.post('/video/reorder', function(req, res) {
             });
         })
     } else if (old_order_id < new_order_id) {
-        VideoPlayList.update({ order: { $lte: new_order_id , $gt:old_order_id }, userplaylist_id: userplaylist_id }, { $inc: { order: -1 } }, { multi: true }, function(err) {
+        VideoPlayList.update({ order: { $lte: new_order_id, $gt: old_order_id }, userplaylist_id: userplaylist_id }, { $inc: { order: -1 } }, { multi: true }, function(err) {
             if (err)
                 return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
             VideoPlayList.update({ _id: videoplaylists_id }, { order: new_order_id }, function(err, videos) {
@@ -447,7 +448,31 @@ router.post('/video/reorder', function(req, res) {
     } else {
         return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
     }
+});
 
+router.post('/groupchat/new_msg', function(req, res) {
+    var user_id = req.body.user_id,
+        msg = req.body.msg;
+    var groupchat = new groupChat();
+    groupchat.user_id = user_id;
+    groupchat.msg = msg
+    groupchat.save(function(err) {
+        if (err)
+            return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+        return res.status(200).json({ message: "Msg Saved", status: 200 });
+    });
 
 });
+router.get('/groupchat/:page', function(req, res) {
+    var page = req.params.page;
+    groupChat.find({}).populate('user_id').sort([
+        ['created_at', 1]
+    ]).exec(function(err, msg) {
+        if (err)
+            return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+        return res.status(200).json({ data: { message: "msg found", data: msg, status: 200 } });
+    });
+});
+
+
 module.exports = router;

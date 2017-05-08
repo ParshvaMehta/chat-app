@@ -45,6 +45,13 @@ var waitListSchema = new mongoose.Schema({
     videoplaylists_id: { type: Schema.Types.ObjectId, ref: 'VideoPlayList' },
     created_at: { type: Date, default: Date.now },
     status: { type: Number, default: 0 }
+});
+
+var groupChatSchema = new mongoose.Schema({
+    msg:String,
+    user_id: { type: Schema.Types.ObjectId, ref: 'User' },
+    created_at: { type: Date, default: Date.now },
+    status: { type: Number, default: 0 }
 })
 
 mongoose.model('Post', postSchema);
@@ -52,3 +59,4 @@ mongoose.model('User', userSchema);
 mongoose.model('Userplaylist', userPlaylistSchema);
 mongoose.model('VideoPlayList', videoPlaylistSchema);
 mongoose.model('WaitList', waitListSchema);
+mongoose.model('groupChat', groupChatSchema);
