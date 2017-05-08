@@ -11,10 +11,10 @@ var jwt = require('jsonwebtoken');
 var passportJWT = require("passport-jwt");
 var ExtractJwt = passportJWT.ExtractJwt;
 var JwtStrategy = passportJWT.Strategy;
-//initialize mongoose schemas
+ //initialize mongoose schemas
 require('./models/models');
 var initPassport = require('./passport-init');
-
+var Server = require('socket.io');
 var api = require('./routes/api');
 var authenticate = require('./routes/authenticate')(passport);
 
@@ -71,5 +71,7 @@ app.use(function(err, req, res, next) {
     res.status(err.status || 500);
     res.render('error');
 });
+
+ 
 
 module.exports = app;
