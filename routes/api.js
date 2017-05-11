@@ -374,6 +374,7 @@ router.route('/uservideoplaylist')
 
         userplaylist.user_id = user_id;
         userplaylist.name = name;
+        console.info(userplaylist);
         userplaylist.save(function(err) {
             if (err) {
                 console.log('Error in Saving userplaylist: ' + err);
@@ -448,6 +449,38 @@ router.post('/video/reorder', function(req, res) {
     } else {
         return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
     }
+});
+
+router.get('/get_waitlist_status/:user_id', function(req, res) {
+    var user_id = req.params.user_id;
+    WaitList.find({ status: 0 }).populate('videoplaylists_id', null, { user_id: user_id }).exec(function(err, waitlist) {
+        if (err)
+            return res.status(200).json({ data: { message: "Something went wrong! please contact admin", err: err, status: 500 } });
+        var userAlreadyInPlaylist = false;
+        for (var i = 0; i < waitlist.length; i++) {
+            if (waitlist[i].videoplaylists_id != null) {
+                if (waitlist[i].videoplaylists_id.user_id == user_id) {
+                    userAlreadyInPlaylist = true;
+                    break;
+                }
+            }
+        }
+        return res.status(200).json({ data: { message: "waitlist data found", data: { already_in_waitlist: userAlreadyInPlaylist }, status: 200 } });
+    });
+
+    // Userplaylist.find({ user_id: user_id, isactive: true }).exec(function(err, userplaylist) {
+    //     if (err)
+    //         return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+    //     if (userplaylist[0]) {
+    //         if (userplaylist[0]._id) {
+    //            var userplaylist_id = userplaylist[0]._id;
+
+    //         } else {
+    //             return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+    //         }
+    //     }
+    //     return res.status(200).json({ data: { message: "msg found", data: userplaylist[0]._id, status: 200 } });
+    // });
 });
 
 router.post('/groupchat/new_msg', function(req, res) {
