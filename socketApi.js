@@ -9,6 +9,13 @@ socketApi.io = io;
 
 io.on('connection', function(socket) {
     console.log('A user connected');
+    socket.on('chat message', function(msg) {
+        console.info(msg);
+        // io.emit('chat message', msg);
+        // io.on('connection', function(socket){
+        socket.broadcast.emit('hi');
+
+    });
 });
 
 io.on('disconnect', function() {

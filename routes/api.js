@@ -482,6 +482,34 @@ router.get('/get_waitlist_status/:user_id', function(req, res) {
     //     return res.status(200).json({ data: { message: "msg found", data: userplaylist[0]._id, status: 200 } });
     // });
 });
+router.get('/removevideofromplaylistbyuserid/:user_id', function(req, res) {
+    var user_id = req.params.user_id;
+    WaitList.find({ status: 0 }).populate('videoplaylists_id', null, { user_id: user_id }).exec(function(err, waitlist) {
+        if (err)
+            return res.status(200).json({ data: { message: "Something went wrong! please contact admin", err: err, status: 500 } });
+        var waitlistByUser = false;
+        for (var i = 0; i < waitlist.length; i++) {
+            if (waitlist[i].videoplaylists_id != null) {
+                if (waitlist[i].videoplaylists_id.user_id == user_id) {
+                    //console.log(waitlist[i]);
+                    waitlistByUser = waitlist[i];
+                    break;
+                }
+            }
+        }
+        var conditions = { _id: waitlistByUser._id },
+            update = { status: 1 },
+            options = {};
+
+        WaitList.update(conditions, update, options, function callback(err, users) {
+            if (err) {
+                return res.status(500).send(err);
+            }
+            return res.status(200).send({ data: { message: 'Waitlist leave successfully', 'status': 200 } });
+        });
+        // return res.status(200).json({ data: { message: "waitlist data found", data: { already_in_waitlist: userAlreadyInPlaylist }, status: 200 } });
+    });
+});
 
 router.post('/groupchat/new_msg', function(req, res) {
     var user_id = req.body.user_id,
@@ -506,6 +534,8 @@ router.get('/groupchat/:page', function(req, res) {
         return res.status(200).json({ data: { message: "msg found", data: msg, status: 200 } });
     });
 });
+
+
 
 
 module.exports = router;
