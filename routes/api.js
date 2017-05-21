@@ -535,6 +535,17 @@ router.get('/groupchat/:page', function(req, res) {
     });
 });
 
+router.get('/groupchat/delete/:id', function(req, res) {
+    var id = req.params.id;
+    groupChat.remove({
+        _id: req.params.id
+    }, function(err) {
+        if (err)
+            return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+        return res.status(200).json({ data: { message: "msg deletd", status: 200 } });
+    });
+});
+
 
 
 

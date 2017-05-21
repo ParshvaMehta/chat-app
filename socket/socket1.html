@@ -1,0 +1,39 @@
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.7.4/socket.io.min.js"></script>
+<script src="jquery-3.2.1.min.js"></script>
+<script>
+var socket = io('localhost:9000');
+//var socket = io('video-playlist.herokuapp.com');
+socket.on('connect', function() {
+    console.log(socket.id); // 'G5p5...'
+
+});
+</script>
+<script>
+socket.on('broadcast', function(msg) {
+    console.info(msg);
+    $('#messages').append('<li>' + msg._id+"--"+msg.msg+"--"+ msg.user_id.username + "</li>");
+});
+$(function() {
+    $('#m').click(function() {
+        var msg = {
+            // 'user_id': "59143ffe1d685d0694680ddb",
+            // 'username':'parshva1',
+            /*parshva*/
+            'user_id': "58c644cb7f9b9f0a6442c269",
+            'username':'parshva',
+            'msg': $('#msg').val()
+        };
+        socket.emit('send_msg', msg);
+        $('#msg').val('');
+        return false;
+    });
+});
+</script>
+
+<body>
+    <ul id="messages">
+        <li>Chat</li>
+    </ul>
+    <input type="text" id="msg">
+    <input type="button" id="m" value="Submit">
+</body>
