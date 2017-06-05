@@ -7,9 +7,9 @@ var socketApi = {};
 
 socketApi.io = io;
 io.on('connection', function(socket) {
-    //console.log('A user connected');
+    console.log('A user connected');
     socket.on('send_msg', function(msg) {
-        //console.info(msg);
+        console.info(msg);
         User.findById(msg.user_id, function(err, user) {
             if (err)
                 socketApi.sendNotification({ message: 'something went wrong', status: '500' });
@@ -42,7 +42,7 @@ io.on('disconnect', function() {
 });
 
 socketApi.sendNotification = function(msg) {
-    // console.info(msg);
+    console.info(msg);
     io.sockets.emit('broadcast', msg);
 }
 

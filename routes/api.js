@@ -13,6 +13,7 @@ var request = require('request');
 var JwtStrategy = require('passport-jwt').Strategy,
     ExtractJwt = require('passport-jwt').ExtractJwt;
 var jwt = require('jsonwebtoken');
+var moment = require('moment');
 
 //Used for routes that must be authenticated.
 function isAuthenticated(req, res, next) {
@@ -173,12 +174,13 @@ router.route('/userplaylist')
                         maxRedirects: 10
                     }, function(error, response, body) {
                         var videoData = JSON.parse(body).items[0];
+                        var duration = moment.duration(videoData.contentDetails.duration).asSeconds();
                         var playlist = new VideoPlayList();
                         playlist.user_id = user_id;
                         playlist.youtube_video_id = videoData.id;
                         playlist.title = videoData.snippet.title;
                         playlist.thumbnail = videoData.snippet.thumbnails.high.url;
-                        playlist.duration = videoData.contentDetails.duration;
+                        playlist.duration = duration;
                         playlist.embedHtml = videoData.player.embedHtml;
                         playlist.url = url;
                         playlist.userplaylist_id = userplaylist_id;
@@ -193,7 +195,7 @@ router.route('/userplaylist')
                                 playlist.youtube_video_id = videoData.id;
                                 playlist.title = videoData.snippet.title;
                                 playlist.thumbnail = videoData.snippet.thumbnails.high.url;
-                                playlist.duration = videoData.contentDetails.duration;
+                                playlist.duration = duration;
                                 playlist.embedHtml = videoData.player.embedHtml;
                                 playlist.url = url;
                                 playlist.userplaylist_id = userplaylist_id;
@@ -216,8 +218,8 @@ router.route('/userplaylist')
 
                             }
 
-                            //res.status(200).send({ "playlist": playlist, "data": videoData });
                         });
+                        // res.status(200).send({ "data": videoData, "duration":duration });
 
 
                     });
@@ -228,7 +230,8 @@ router.route('/userplaylist')
             res.status(200).send({ 'message': 'Invalid url', 'status': '200' });
         }
     })
-    /* wait list api*/
+
+/* wait list api*/
 router.route('/waitlist')
     .get(function(req, res) {
         WaitList.find({ status: 0 }).populate('videoplaylists_id').sort([
@@ -302,7 +305,36 @@ router.get('/waitlist/current', function(req, res) {
     ]).exec(function(err, current) {
         if (err)
             return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
-        return res.status(200).json({ data: { message: "Current Video", data: current, status: 200 } });
+        if (current) {
+            if (!current.started) {
+                WaitList.findByIdAndUpdate(current._id, { started: new Date() }, function(err, currentVideo) {
+                    if (err)
+                        return res.status(200).json({ data: { message: "Something went wrong! please contact admin", err: err, status: 500 } });
+                    return res.status(200).json({ data: { message: "Current Video", data: current, start_time: 0, status: 200 } });
+                });
+            } else {
+                var timeDiff = moment().diff(moment(current.started, 'seconds')) / 1000;
+                if (timeDiff > current.videoplaylists_id.duration) {
+                    var current_id = current._id;
+                    WaitList.findByIdAndUpdate(current_id, { status: 1 }, function(err, currentVideo) {
+                            if (err)
+                                return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+                            WaitList.findOne({ status: 0 }).populate('videoplaylists_id').sort([
+                                ['created_at', 1]
+                            ]).exec(function(err, current) {
+                                if (err)
+                                    return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+                                return res.status(200).json({ data: { message: "Current Video", start_time: 0, data: current, status: 200 } });
+                            });
+                        })
+                        // return res.status(200).json({ data: { message: "Current Video", data: [], status: 200 } });
+                } else {
+                    return res.status(200).json({ data: { message: "Current Video", data: current, start_time: timeDiff, status: 200 } });
+                }
+            }
+        } else {
+            return res.status(200).json({ data: { message: "No waitlist video found", data: [], status: 200 } });
+        }
     })
 })
 router.get('/waitlist/next/:id', function(req, res) {
@@ -315,7 +347,37 @@ router.get('/waitlist/next/:id', function(req, res) {
         ]).exec(function(err, current) {
             if (err)
                 return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
-            return res.status(200).json({ data: { message: "Current Video", data: current, status: 200 } });
+            if (current) {
+                if (!current.started) {
+                    WaitList.findByIdAndUpdate(current._id, { started: new Date() }, function(err, currentVideo) {
+                        if (err)
+                            return res.status(200).json({ data: { message: "Something went wrong! please contact admin", err: err, status: 500 } });
+                        return res.status(200).json({ data: { message: "Current Video", data: current, start_time: 0, status: 200 } });
+                    });
+                } else {
+                    var timeDiff = moment().diff(moment(current.started, 'seconds')) / 1000;
+                    if (timeDiff > current.videoplaylists_id.duration) {
+                        var current_id = current._id;
+                        WaitList.findByIdAndUpdate(current_id, { status: 1 }, function(err, currentVideo) {
+                                if (err)
+                                    return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+                                WaitList.findOne({ status: 0 }).populate('videoplaylists_id').sort([
+                                    ['created_at', 1]
+                                ]).exec(function(err, current) {
+                                    if (err)
+                                        return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+                                    return res.status(200).json({ data: { message: "Current Video", start_time: 0, data: current, status: 200 } });
+                                });
+                            })
+                            // return res.status(200).json({ data: { message: "Current Video", data: [], status: 200 } });
+                    } else {
+                        return res.status(200).json({ data: { message: "Current Video", data: current, start_time: timeDiff, status: 200 } });
+                    }
+                }
+            } else {
+                return res.status(200).json({ data: { message: "No waitlist video found", data: [], start_time: 0, status: 200 } });
+            }
+            //return res.status(200).json({ data: { message: "Current Video", data: current, status: 200 } });
         });
     })
 })
@@ -363,7 +425,7 @@ router.get('/waitlist/history', function(req, res) {
         if (err)
             return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
 
-        return res.status(200).json({ data: { message: "Current Video", data: currentVideo, status: 200 } });
+        return res.status(200).json({ data: { message: "Videos history found", data: currentVideo, status: 200 } });
     });
 })
 router.route('/uservideoplaylist')
