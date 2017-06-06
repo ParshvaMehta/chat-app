@@ -160,7 +160,7 @@ module.exports = function(passport) {
     });
 
     var isValidPassword = function(user, password) {
-        console.log(createHash(passport), user.password);
+       // console.log(createHash(passport), user.password);
         return bCrypt.compareSync(password, user.password);
     };
 

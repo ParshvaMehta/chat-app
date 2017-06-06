@@ -14,6 +14,7 @@ var JwtStrategy = require('passport-jwt').Strategy,
     ExtractJwt = require('passport-jwt').ExtractJwt;
 var jwt = require('jsonwebtoken');
 var moment = require('moment');
+var bCrypt = require('bcrypt-nodejs');
 
 //Used for routes that must be authenticated.
 function isAuthenticated(req, res, next) {
@@ -56,19 +57,7 @@ router.get('/user/activate_user/:id', function(req, res) {
 //Register the authentication middleware
 //router.use('/youtube', isAuthenticated);
 router.route('/user')
-    // //creates a new post
-    // .post(function(req, res) {
 
-//     var post = new Post();
-//     post.text = req.body.text;
-//     post.created_by = req.body.created_by;
-//     post.save(function(err, post) {
-//         if (err) {
-//             return res.send(500, err);
-//         }
-//         return res.json(post);
-//     });
-// })
 //gets all user
 .get(function(req, res) {
     var query = User.find({}).select({ 'password': 0, 'signup_secret': 0, 'created_at': 0, '__v': 0 });
@@ -81,31 +70,59 @@ router.route('/user')
     });
 });
 
-//post-specific commands. likely won't be used
+//get specific user by id
 router.route('/user/:id')
     //gets specified post
     .get(function(req, res) {
-        User.findById(req.params.id, function(err, post) {
+        var user_id = req.params.id,
+            user = {};
+        User.findById(user_id, function(err, user) {
             if (err)
-                res.send(err);
-            res.json(post);
+                return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+            return res.status(200).send({ 'message': 'User found successfully', 'data': user, 'status': '200' });
         });
     })
     //updates specified post
-    .put(function(req, res) {
-        Post.findById(req.params.id, function(err, post) {
+    .post(function(req, res) {
+        var id = req.params.id,
+            email = req.body.email,
+            old_password = req.body.old_password,
+            username = req.body.username,
+            password = req.body.password,
+            status = req.body.status,
+            user_role = req.body.user_role,
+            conditions = { _id: req.params.id },
+            update = {},
+            options = {};
+        User.findById(id, function(err, user) {
             if (err)
-                res.send(err);
-
-            post.created_by = req.body.created_by;
-            post.text = req.body.text;
-
-            post.save(function(err, post) {
-                if (err)
-                    res.send(err);
-
-                res.json(post);
-            });
+                return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+            if (user) {
+                if (email && email != '')
+                    update.email = email;
+                if (username && username != '')
+                    update.username = username;
+                update.status = status;
+                update.user_role = user_role;
+                if (old_password && old_password != '') {
+                    if (!isValidPassword(old_password, user.password)) {
+                        return res.status(200).send({ 'message': 'Password not valid', 'status': '201' });
+                    }
+                    if (password && password != '')
+                        update.password = createHash(password);
+                }
+                User.update(conditions, update, options, function callback(err, users) {
+                    if (err) {
+                        return res.status(500).send(err);
+                    }
+                    var heder = config.mailConstants.user_profile_update_header;
+                    var body = config.mailConstants.user_profile_update_body.replace('[USER_NAME]', user.username);
+                    Mailer.sendMail(user.email, heder, body);
+                    return res.status(200).send({ 'message': 'User updated', 'status': '200' });
+                });
+            } else {
+                return res.status(200).send({ 'message': 'Invalid User Id', 'status': '201' });
+            }
         });
     })
     //deletes the post
@@ -118,6 +135,14 @@ router.route('/user/:id')
             res.json("deleted :(");
         });
     });
+var isValidPassword = function(password, encrypt) {
+    return bCrypt.compareSync(password, encrypt);
+};
+
+// Generates hash using bCrypt
+var createHash = function(password) {
+    return bCrypt.hashSync(password, bCrypt.genSaltSync(10), null);
+};
 /* User Play list api*/
 router.route('/userplaylist/:user_id')
     .get(function(req, res) {
@@ -127,8 +152,21 @@ router.route('/userplaylist/:user_id')
                 return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
             return res.status(200).json({ message: "Playlist found", data: videos, status: 200 });
         })
-    })
-
+    });
+/*Check user name available*/
+router.get('/username_avail/:username', function(req, res) {
+    var username = req.params.username;
+    User.findOne({ username: username }, function(err, user) {
+        // doc is a Document
+        if (err)
+            return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+        if (user) {
+            return res.status(200).json({ data: { message: "Username not availble", status: 201 } });
+        } else {
+            return res.status(200).json({ data: { message: "Username availble", status: 200 } });
+        }
+    });
+});
 router.route('/userplaylist')
     .post(function(req, res) {
         var url = req.body.url,
@@ -264,7 +302,7 @@ router.route('/waitlist')
                     if (err)
                         return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
                     if (waitlist && waitlist.length > 0) {
-                        return res.status(200).json({ message: "You are already in waitlist!", status: 200 });
+                        return res.stFusatus(200).json({ message: "You are already in waitlist!", status: 200 });
                     }
                     var waitList = new WaitList();
                     waitList.videoplaylists_id = videoplaylists_id;
