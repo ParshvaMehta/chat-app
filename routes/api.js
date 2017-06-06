@@ -198,11 +198,11 @@ router.get('/username_avail/:username', function(req, res) {
     User.findOne({ username: username }, function(err, user) {
         // doc is a Document
         if (err)
-            return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+            return res.status(200).json( { message: "Something went wrong! please contact admin", status: 500 } );
         if (user) {
-            return res.status(200).json({ data: { message: "Username not availble", status: 201 } });
+            return res.status(200).json( { message: "Username not availble", status: 201 } );
         } else {
-            return res.status(200).json({ data: { message: "Username availble", status: 200 } });
+            return res.status(200).json(  { message: "Username availble", status: 200 } );
         }
     });
 });
