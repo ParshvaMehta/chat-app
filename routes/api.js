@@ -15,6 +15,30 @@ var JwtStrategy = require('passport-jwt').Strategy,
 var jwt = require('jsonwebtoken');
 var moment = require('moment');
 var bCrypt = require('bcrypt-nodejs');
+var multer = require('multer');
+var fs = require('fs');
+var avtar_dir = __dirname + "/../public/images/user_avtar";
+if (!fs.existsSync(avtar_dir)) {
+    // Do something
+    fs.mkdir(avtar_dir, 0777, function(err) {
+        if (err) console.log("Failed to create file at " + avtar_dir);
+    });
+} else {
+    fs.chmod(avtar_dir, 0777, function(err) {
+        if (err) console.log("Failed to create file at " + avtar_dir);
+    });
+}
+var Storage = multer.diskStorage({
+    destination: function(req, file, callback) {
+        callback(null, avtar_dir);
+    },
+    filename: function(req, file, callback) {
+        callback(null, file.fieldname + "_" + Date.now() + "_" + file.originalname);
+    }
+});
+var upload = multer({
+    storage: Storage
+}).single("avtar"); //Field name and max count
 
 //Used for routes that must be authenticated.
 function isAuthenticated(req, res, next) {
@@ -143,6 +167,18 @@ var isValidPassword = function(password, encrypt) {
 var createHash = function(password) {
     return bCrypt.hashSync(password, bCrypt.genSaltSync(10), null);
 };
+
+/*Update user profile image*/
+router.post('/user_profile_image/:user_id', function(req, res) {
+    var id = req.params.user_id;
+    upload(req, res, function(err, data) {
+        if (err)
+            return res.status(200).json({ message: "Something went wrong! please contact admin", err: err, status: 500 });
+
+        // return res.end("File uploaded sucessfully!.");
+        return res.status(200).send({ 'message': 'Updated user avtar', "data": id, "filename": req.file.filename, 'status': '200' });
+    });
+});
 /* User Play list api*/
 router.route('/userplaylist/:user_id')
     .get(function(req, res) {
