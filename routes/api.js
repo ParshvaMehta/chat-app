@@ -170,13 +170,16 @@ var createHash = function(password) {
 
 /*Update user profile image*/
 router.post('/user_profile_image/:user_id', function(req, res) {
-    var id = req.params.user_id;
+    var user_id = req.params.user_id;
     upload(req, res, function(err, data) {
         if (err)
             return res.status(200).json({ message: "Something went wrong! please contact admin", err: err, status: 500 });
 
-        // return res.end("File uploaded sucessfully!.");
-        return res.status(200).send({ 'message': 'Updated user avtar', "data": id, "filename": req.file.filename, 'status': '200' });
+        User.findByIdAndUpdate(user_id, { avtar: req.file.filename }, function(err, user) {
+            if (err)
+                return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+            return res.status(200).send({ 'message': 'Updated user avtar', "data": user_id, "filename": req.file.filename, 'status': '200' });
+        });
     });
 });
 /* User Play list api*/

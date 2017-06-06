@@ -14,7 +14,8 @@ var userSchema = new mongoose.Schema({
     created_at: { type: Date, default: Date.now },
     signup_secret: String,
     user_role: { type: Number, default: 0 },
-    status: { type: Number, default: 0 }
+    status: { type: Number, default: 0 },
+    avtar:{type:String, default:"default-user.png"}
 })
 
 var videoPlaylistSchema = new mongoose.Schema({
