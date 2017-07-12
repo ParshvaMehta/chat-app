@@ -753,6 +753,77 @@ router.get('/groupchat/delete/:id', function(req, res) {
     });
 });
 
+router.get('/upvote/:videoplaylist_id/:user_id', function(req, res) {
+    var videoplaylist_id = req.params.videoplaylist_id;
+    var user_id = req.params.user_id;
+    var user = {
+        user_id: user_id
+    };
+    VideoPlayList.findById(videoplaylist_id, function(err, videoplaylist) {
+        if (err)
+            return res.status(200).json({ data: { data: err, message: "Something went wrong! please contact admin", status: 500 } });
+        var upvoteArr = videoplaylist.upvote.split(','),
+            downvoteArr = videoplaylist.downvote.split(','),
+            upvoteIndex = upvoteArr.indexOf(user_id),
+            downvoteIndex = downvoteArr.indexOf(user_id);
+
+
+        if (downvoteIndex > 0)
+            downvoteArr.splice(downvoteIndex, 1);
+        if (upvoteIndex < 0)
+            upvoteArr.push(user_id);
+
+        videoplaylist.downvote = downvoteArr.join();
+        videoplaylist.upvote = upvoteArr.join();
+        console.log(downvoteArr, upvoteArr);
+        videoplaylist.save(function(err, data) {
+            if (err)
+                return res.status(200).json({ data: { data: err, message: "Something went wrong! please contact admin", status: 500 } });
+            return res.status(200).json({ data: { data: videoplaylist, message: "Upvote successfully", status: 200 } });
+
+        })
+    });
+    /*// VideoPlayList.update({ _id: videoplaylist_id }, { '$pull': {downvote:{ _id: user_id }} }, function(err, downvote) {
+    //     if (err)
+    //         return res.status(200).json({ data: { data: err, message: "Something went wrong! please contact admin", status: 500 } });
+    VideoPlayList.update({ _id: videoplaylist_id }, { $push: { 'upvote': user } }, function(err, downvote) {
+        if (err)
+            return res.status(200).json({ data: { data: err, message: "Something went wrong! please contact admin", status: 500 } });
+        return res.status(200).json({ data: { message: "Upvote successfully", status: 200 } });
+    });
+    // });*/
+});
+
+router.get('/downvote/:videoplaylist_id/:user_id', function(req, res) {
+    var videoplaylist_id = req.params.videoplaylist_id;
+    var user_id = req.params.user_id;
+    var user = {
+        user_id: user_id
+    };
+    VideoPlayList.findById(videoplaylist_id, function(err, videoplaylist) {
+        if (err)
+            return res.status(200).json({ data: { data: err, message: "Something went wrong! please contact admin", status: 500 } });
+        var upvoteArr = videoplaylist.upvote.split(','),
+            downvoteArr = videoplaylist.downvote.split(','),
+            upvoteIndex = upvoteArr.indexOf(user_id),
+            downvoteIndex = downvoteArr.indexOf(user_id);
+
+        if (upvoteIndex > 0)
+            upvoteArr.splice(downvoteIndex, 1);
+        if (downvoteIndex < 0)
+            downvoteArr.push(user_id);
+
+        console.log(downvoteArr, upvoteArr);
+        videoplaylist.downvote = downvoteArr.join();
+        videoplaylist.upvote = upvoteArr.join();
+        videoplaylist.save(function(err, data) {
+            if (err)
+                return res.status(200).json({ data: { data: err, message: "Something went wrong! please contact admin", status: 500 } });
+            return res.status(200).json({ data: { data: videoplaylist, message: "Downvote successfully", status: 200 } });
+
+        })
+    });
+});
 
 
 

@@ -15,7 +15,7 @@ var userSchema = new mongoose.Schema({
     signup_secret: String,
     user_role: { type: Number, default: 0 },
     status: { type: Number, default: 0 },
-    avtar:{type:String, default:"default-user.png"}
+    avtar: { type: String, default: "default-user.png" }
 })
 
 var videoPlaylistSchema = new mongoose.Schema({
@@ -26,12 +26,12 @@ var videoPlaylistSchema = new mongoose.Schema({
     embedHtml: String,
     user_id: { type: Schema.Types.ObjectId, ref: 'User' },
     created_at: { type: Date, default: Date.now },
-    upvote: { type: Array, "default": [] },
-    downvote: { type: Array, "default": [] },
+    upvote: { type: String, default: '' },
+    downvote: { type: String, default: '' },
     url: String,
     status: { type: Number, default: 0 },
-    userplaylist_id:{ type: Schema.Types.ObjectId, ref: 'Userplaylist' },
-    order:{type: Number, default: 0 }
+    userplaylist_id: { type: Schema.Types.ObjectId, ref: 'Userplaylist' },
+    order: { type: Number, default: 0 }
 })
 
 var userPlaylistSchema = new mongoose.Schema({
@@ -39,18 +39,18 @@ var userPlaylistSchema = new mongoose.Schema({
     name: String,
     isactive: { type: Boolean, default: false },
     created_at: { type: Date, default: Date.now },
-    total_video:{ type: Number, default: 0 }
+    total_video: { type: Number, default: 0 }
 });
 
 var waitListSchema = new mongoose.Schema({
     videoplaylists_id: { type: Schema.Types.ObjectId, ref: 'VideoPlayList' },
     created_at: { type: Date, default: Date.now },
     status: { type: Number, default: 0 },
-    started:{type: Date}
+    started: { type: Date }
 });
 
 var groupChatSchema = new mongoose.Schema({
-    msg:String,
+    msg: String,
     user_id: { type: Schema.Types.ObjectId, ref: 'User' },
     created_at: { type: Date, default: Date.now },
     status: { type: Number, default: 0 }
