@@ -17,6 +17,7 @@ var moment = require('moment');
 var bCrypt = require('bcrypt-nodejs');
 var multer = require('multer');
 var fs = require('fs');
+var Configuration = mongoose.model('Configuration');
 var avtar_dir = __dirname + "/../public/images/user_avtar";
 if (!fs.existsSync(avtar_dir)) {
     // Do something
@@ -81,18 +82,95 @@ router.get('/user/activate_user/:id', function(req, res) {
 //Register the authentication middleware
 //router.use('/youtube', isAuthenticated);
 router.route('/user')
+    //gets all user
+    .get(function(req, res) {
+        var query = User.find({}).select({ 'password': 0, 'signup_secret': 0, 'created_at': 0, '__v': 0 });
 
-//gets all user
-.get(function(req, res) {
-    var query = User.find({}).select({ 'password': 0, 'signup_secret': 0, 'created_at': 0, '__v': 0 });
-
-    query.exec(function(err, users) {
-        if (err) {
-            return res.status(500).send(err);
-        }
-        return res.status(200).send({ 'message': 'User found successfully', 'data': users, 'status': '200' });
+        query.exec(function(err, users) {
+            if (err) {
+                return res.status(500).send(err);
+            }
+            return res.status(200).send({ 'message': 'User found successfully', 'data': users, 'status': '200' });
+        });
     });
-});
+
+router.route('/configuration')
+    //gets all user
+    .get(function(req, res) {
+        var query = Configuration.find({ 'is_defalut': true });
+        query.exec(function(err, users) {
+            if (err) {
+                return res.status(500).send(err);
+            }
+            return res.status(200).send({ 'message': 'Configuration found successfully', 'data': users, 'status': '200' });
+        });
+    })
+    //updates specified post
+    .post(function(req, res) {
+        var id = req.body.id,
+            lock_queue = req.body.lock_queue,
+            toggle_cycle = req.body.toggle_cycle,
+            discord_url = req.body.discord_url,
+            youtube_url = req.body.youtube_url,
+            facebook_url = req.body.facebook_url,
+            soundcloud_url = req.body.soundcloud_url,
+            room_info_text = req.body.room_info_text,
+            update = {},
+            conditions = { _id: req.body.id },
+            options = {};
+        Configuration.findById(id, function(err, config) {
+            if (err)
+                return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+            if (config) {
+            	console.log(config);
+
+                update.lock_queue = lock_queue;
+                update.toggle_cycle = toggle_cycle;
+                update.discord_url = discord_url;
+                update.youtube_url = youtube_url;
+                update.facebook_url = facebook_url;
+                update.soundcloud_url = soundcloud_url;
+                update.room_info_text = room_info_text;
+                Configuration.update(conditions, update, options, function callback(err, users) {
+                    if (err) {
+                        return res.status(500).send(err);
+                    }
+                    return res.status(200).send({ 'message': 'Configuration updated', 'status': '200' });
+                });
+            } else {
+                var configuration = new Configuration();
+                configuration.lock_queue = lock_queue;
+                configuration.toggle_cycle = toggle_cycle;
+                configuration.discord_url = discord_url;
+                configuration.youtube_url = youtube_url;
+                configuration.facebook_url = facebook_url;
+                configuration.soundcloud_url = soundcloud_url;
+                configuration.room_info_text = room_info_text;
+                configuration.is_defalut = true;
+                configuration.save(function(err) {
+                    if (err) {
+                        console.log('Error in Saving configuration: ' + err);
+                        res.status(200).send({ message: 'something went wrong', status: '500' });
+                    }
+                    return res.status(200).send({ 'message': 'Configuration Saved', 'status': '200' });
+                });
+            }
+        });
+    });
+
+router.route('/user/status/:status_id')
+    //gets all user
+    .get(function(req, res) {
+        var status_id = req.params.status_id;
+        var query = User.find({ 'status': status_id }).select({ 'password': 0, 'signup_secret': 0, 'created_at': 0, '__v': 0 });
+
+        query.exec(function(err, users) {
+            if (err) {
+                return res.status(500).send(err);
+            }
+            return res.status(200).send({ 'message': 'User found successfully', 'data': users, 'status': '200' });
+        });
+    });
 
 //get specific user by id
 router.route('/user/:id')
@@ -399,23 +477,23 @@ router.get('/waitlist/current', function(req, res) {
                         if (timeDiff > current.videoplaylists_id.duration) {
                             var current_id = current._id;
                             WaitList.findByIdAndUpdate(current_id, { status: 1 }, function(err, currentVideo) {
-                                    if (err)
-                                        return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
-                                    WaitList.findOne({ status: 0 }).populate('videoplaylists_id').sort([
-                                        ['created_at', 1]
-                                    ]).exec(function(err, current) {
-                                        if (current.videoplaylists_id && current.videoplaylists_id.user_id) {
-                                            User.findById(current.videoplaylists_id.user_id, function(err, user) {
-                                                if (err)
-                                                    return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
-                                                return res.status(200).json({ data: { message: "Current Video", user: user, start_time: 0, data: current, status: 200 } });
-                                            });
-                                        } else {
-                                            return res.status(200).json({ data: { message: "No user found for current playlist", data: current, status: 200 } });
-                                        }
-                                    });
-                                })
-                                // return res.status(200).json({ data: { message: "Current Video", data: [], status: 200 } });
+                                if (err)
+                                    return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+                                WaitList.findOne({ status: 0 }).populate('videoplaylists_id').sort([
+                                    ['created_at', 1]
+                                ]).exec(function(err, current) {
+                                    if (current.videoplaylists_id && current.videoplaylists_id.user_id) {
+                                        User.findById(current.videoplaylists_id.user_id, function(err, user) {
+                                            if (err)
+                                                return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+                                            return res.status(200).json({ data: { message: "Current Video", user: user, start_time: 0, data: current, status: 200 } });
+                                        });
+                                    } else {
+                                        return res.status(200).json({ data: { message: "No user found for current playlist", data: current, status: 200 } });
+                                    }
+                                });
+                            })
+                            // return res.status(200).json({ data: { message: "Current Video", data: [], status: 200 } });
                         } else {
                             if (current.videoplaylists_id && current.videoplaylists_id.user_id) {
                                 User.findById(current.videoplaylists_id.user_id, function(err, user) {
@@ -487,23 +565,23 @@ router.get('/waitlist/next/:id', function(req, res) {
                         if (timeDiff > current.videoplaylists_id.duration) {
                             var current_id = current._id;
                             WaitList.findByIdAndUpdate(current_id, { status: 1 }, function(err, currentVideo) {
-                                    if (err)
-                                        return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
-                                    WaitList.findOne({ status: 0 }).populate('videoplaylists_id').sort([
-                                        ['created_at', 1]
-                                    ]).exec(function(err, current) {
-                                        if (current.videoplaylists_id && current.videoplaylists_id.user_id) {
-                                            User.findById(current.videoplaylists_id.user_id, function(err, user) {
-                                                if (err)
-                                                    return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
-                                                return res.status(200).json({ data: { message: "Current Video", user: user, start_time: 0, data: current, status: 200 } });
-                                            });
-                                        } else {
-                                            return res.status(200).json({ data: { message: "No user found for current playlist", data: current, status: 200 } });
-                                        }
-                                    });
-                                })
-                                // return res.status(200).json({ data: { message: "Current Video", data: [], status: 200 } });
+                                if (err)
+                                    return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+                                WaitList.findOne({ status: 0 }).populate('videoplaylists_id').sort([
+                                    ['created_at', 1]
+                                ]).exec(function(err, current) {
+                                    if (current.videoplaylists_id && current.videoplaylists_id.user_id) {
+                                        User.findById(current.videoplaylists_id.user_id, function(err, user) {
+                                            if (err)
+                                                return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+                                            return res.status(200).json({ data: { message: "Current Video", user: user, start_time: 0, data: current, status: 200 } });
+                                        });
+                                    } else {
+                                        return res.status(200).json({ data: { message: "No user found for current playlist", data: current, status: 200 } });
+                                    }
+                                });
+                            })
+                            // return res.status(200).json({ data: { message: "Current Video", data: [], status: 200 } });
                         } else {
                             if (current.videoplaylists_id && current.videoplaylists_id.user_id) {
                                 User.findById(current.videoplaylists_id.user_id, function(err, user) {

@@ -54,7 +54,18 @@ var groupChatSchema = new mongoose.Schema({
     user_id: { type: Schema.Types.ObjectId, ref: 'User' },
     created_at: { type: Date, default: Date.now },
     status: { type: Number, default: 0 }
-})
+});
+
+var configurationSchema = new mongoose.Schema({
+    lock_queue:{ type: Boolean, default: false },
+    toggle_cycle:{ type: Boolean, default: false},
+    discord_url:String,
+    youtube_url:String,
+    facebook_url:String,
+    soundcloud_url:String,
+    room_info_text:String,
+    is_defalut:{ type: Boolean, default: true}
+});
 
 mongoose.model('Post', postSchema);
 mongoose.model('User', userSchema);
@@ -62,3 +73,4 @@ mongoose.model('Userplaylist', userPlaylistSchema);
 mongoose.model('VideoPlayList', videoPlaylistSchema);
 mongoose.model('WaitList', waitListSchema);
 mongoose.model('groupChat', groupChatSchema);
+mongoose.model('Configuration', configurationSchema);
