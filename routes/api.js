@@ -107,7 +107,7 @@ router.route('/configuration')
     })
     //updates specified post
     .post(function(req, res) {
-        var id = req.body.id,
+        var id = req.body._id,
             lock_queue = req.body.lock_queue,
             toggle_cycle = req.body.toggle_cycle,
             discord_url = req.body.discord_url,
@@ -116,13 +116,13 @@ router.route('/configuration')
             soundcloud_url = req.body.soundcloud_url,
             room_info_text = req.body.room_info_text,
             update = {},
-            conditions = { _id: req.body.id },
+            conditions = { _id: req.body._id },
             options = {};
         Configuration.findById(id, function(err, config) {
             if (err)
                 return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
             if (config) {
-            	console.log(config);
+            	
 
                 update.lock_queue = lock_queue;
                 update.toggle_cycle = toggle_cycle;
@@ -131,6 +131,9 @@ router.route('/configuration')
                 update.facebook_url = facebook_url;
                 update.soundcloud_url = soundcloud_url;
                 update.room_info_text = room_info_text;
+                console.log(conditions);
+                console.log(update);
+                
                 Configuration.update(conditions, update, options, function callback(err, users) {
                     if (err) {
                         return res.status(500).send(err);
@@ -672,7 +675,7 @@ router.route('/uservideoplaylist')
 router.get('/uservideoplaylist/:user_id', function(req, res) {
     var user_id = req.params.user_id;
     Userplaylist.find({ user_id: user_id }).populate('videoplaylists_id').sort([
-        ['created_at', 1]
+        ['order', 1]
     ]).exec(function(err, userplaylist) {
         if (err)
             return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
