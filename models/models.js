@@ -46,6 +46,8 @@ var waitListSchema = new mongoose.Schema({
     videoplaylists_id: { type: Schema.Types.ObjectId, ref: 'VideoPlayList' },
     created_at: { type: Date, default: Date.now },
     status: { type: Number, default: 0 },
+    upvote: { type: String, default: '' },
+    downvote: { type: String, default: '' },
     started: { type: Date }
 });
 

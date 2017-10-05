@@ -122,7 +122,7 @@ router.route('/configuration')
             if (err)
                 return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
             if (config) {
-            	
+
 
                 update.lock_queue = lock_queue;
                 update.toggle_cycle = toggle_cycle;
@@ -133,7 +133,7 @@ router.route('/configuration')
                 update.room_info_text = room_info_text;
                 console.log(conditions);
                 console.log(update);
-                
+
                 Configuration.update(conditions, update, options, function callback(err, users) {
                     if (err) {
                         return res.status(500).send(err);
@@ -675,7 +675,7 @@ router.route('/uservideoplaylist')
 router.get('/uservideoplaylist/:user_id', function(req, res) {
     var user_id = req.params.user_id;
     Userplaylist.find({ user_id: user_id }).populate('videoplaylists_id').sort([
-        ['order', 1]
+        ['Order', 1]
     ]).exec(function(err, userplaylist) {
         if (err)
             return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
@@ -834,58 +834,46 @@ router.get('/groupchat/delete/:id', function(req, res) {
     });
 });
 
-router.get('/upvote/:videoplaylist_id/:user_id', function(req, res) {
-    var videoplaylist_id = req.params.videoplaylist_id;
+router.get('/upvote/:waitlist_id/:user_id', function(req, res) {
+    var waitlist_id = req.params.waitlist_id;
     var user_id = req.params.user_id;
     var user = {
         user_id: user_id
     };
-    VideoPlayList.findById(videoplaylist_id, function(err, videoplaylist) {
+    WaitList.findById(waitlist_id, function(err, waitlist) {
         if (err)
             return res.status(200).json({ data: { data: err, message: "Something went wrong! please contact admin", status: 500 } });
-        var upvoteArr = videoplaylist.upvote.split(','),
-            downvoteArr = videoplaylist.downvote.split(','),
+        var upvoteArr = waitlist.upvote.split(','),
+            downvoteArr = waitlist.downvote.split(','),
             upvoteIndex = upvoteArr.indexOf(user_id),
             downvoteIndex = downvoteArr.indexOf(user_id);
-
-
         if (downvoteIndex > 0)
             downvoteArr.splice(downvoteIndex, 1);
         if (upvoteIndex < 0)
             upvoteArr.push(user_id);
-
-        videoplaylist.downvote = downvoteArr.join();
-        videoplaylist.upvote = upvoteArr.join();
+        waitlist.downvote = downvoteArr.join();
+        waitlist.upvote = upvoteArr.join();
         console.log(downvoteArr, upvoteArr);
-        videoplaylist.save(function(err, data) {
+        waitlist.save(function(err, data) {
             if (err)
                 return res.status(200).json({ data: { data: err, message: "Something went wrong! please contact admin", status: 500 } });
-            return res.status(200).json({ data: { data: videoplaylist, message: "Upvote successfully", status: 200 } });
+            return res.status(200).json({ data: { data: waitlist, message: "Upvote successfully", status: 200 } });
 
         })
     });
-    /*// VideoPlayList.update({ _id: videoplaylist_id }, { '$pull': {downvote:{ _id: user_id }} }, function(err, downvote) {
-    //     if (err)
-    //         return res.status(200).json({ data: { data: err, message: "Something went wrong! please contact admin", status: 500 } });
-    VideoPlayList.update({ _id: videoplaylist_id }, { $push: { 'upvote': user } }, function(err, downvote) {
-        if (err)
-            return res.status(200).json({ data: { data: err, message: "Something went wrong! please contact admin", status: 500 } });
-        return res.status(200).json({ data: { message: "Upvote successfully", status: 200 } });
-    });
-    // });*/
 });
 
-router.get('/downvote/:videoplaylist_id/:user_id', function(req, res) {
-    var videoplaylist_id = req.params.videoplaylist_id;
+router.get('/downvote/:waitlist_id/:user_id', function(req, res) {
+    var waitlist_id = req.params.waitlist_id;
     var user_id = req.params.user_id;
     var user = {
         user_id: user_id
     };
-    VideoPlayList.findById(videoplaylist_id, function(err, videoplaylist) {
+    WaitList.findById(waitlist_id, function(err, waitlist) {
         if (err)
             return res.status(200).json({ data: { data: err, message: "Something went wrong! please contact admin", status: 500 } });
-        var upvoteArr = videoplaylist.upvote.split(','),
-            downvoteArr = videoplaylist.downvote.split(','),
+        var upvoteArr = waitlist.upvote.split(','),
+            downvoteArr = waitlist.downvote.split(','),
             upvoteIndex = upvoteArr.indexOf(user_id),
             downvoteIndex = downvoteArr.indexOf(user_id);
 
@@ -894,13 +882,12 @@ router.get('/downvote/:videoplaylist_id/:user_id', function(req, res) {
         if (downvoteIndex < 0)
             downvoteArr.push(user_id);
 
-        console.log(downvoteArr, upvoteArr);
-        videoplaylist.downvote = downvoteArr.join();
-        videoplaylist.upvote = upvoteArr.join();
-        videoplaylist.save(function(err, data) {
+        waitlist.downvote = downvoteArr.join();
+        waitlist.upvote = upvoteArr.join();
+        waitlist.save(function(err, data) {
             if (err)
                 return res.status(200).json({ data: { data: err, message: "Something went wrong! please contact admin", status: 500 } });
-            return res.status(200).json({ data: { data: videoplaylist, message: "Downvote successfully", status: 200 } });
+            return res.status(200).json({ data: { data: waitlist, message: "Downvote successfully", status: 200 } });
 
         })
     });
