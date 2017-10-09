@@ -46,4 +46,8 @@ socketApi.sendNotification = function(msg) {
     io.sockets.emit('broadcast', msg);
 }
 
+socketApi.sendNotificationWithAlert = function(alert,msg) {
+    io.sockets.emit(alert, msg);
+}
+
 module.exports = socketApi;

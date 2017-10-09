@@ -17,8 +17,12 @@ var moment = require('moment');
 var bCrypt = require('bcrypt-nodejs');
 var multer = require('multer');
 var fs = require('fs');
+var socket_io = require('socket.io');
+var io = socket_io();
+var socketApi= require("../socketApi.js")
 var Configuration = mongoose.model('Configuration');
 var avtar_dir = __dirname + "/../public/images/user_avtar";
+
 if (!fs.existsSync(avtar_dir)) {
     // Do something
     fs.mkdir(avtar_dir, 0777, function(err) {
@@ -853,10 +857,10 @@ router.get('/upvote/:waitlist_id/:user_id', function(req, res) {
             upvoteArr.push(user_id);
         waitlist.downvote = downvoteArr.join();
         waitlist.upvote = upvoteArr.join();
-        console.log(downvoteArr, upvoteArr);
         waitlist.save(function(err, data) {
             if (err)
                 return res.status(200).json({ data: { data: err, message: "Something went wrong! please contact admin", status: 500 } });
+            socketApi.sendNotificationWithAlert('voting_waitlist', data);
             return res.status(200).json({ data: { data: waitlist, message: "Upvote successfully", status: 200 } });
 
         })
@@ -887,6 +891,7 @@ router.get('/downvote/:waitlist_id/:user_id', function(req, res) {
         waitlist.save(function(err, data) {
             if (err)
                 return res.status(200).json({ data: { data: err, message: "Something went wrong! please contact admin", status: 500 } });
+            socketApi.sendNotificationWithAlert('voting_waitlist', data);
             return res.status(200).json({ data: { data: waitlist, message: "Downvote successfully", status: 200 } });
 
         })
