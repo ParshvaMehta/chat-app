@@ -8,6 +8,7 @@ var VideoPlayList = mongoose.model('VideoPlayList');
 var WaitList = mongoose.model('WaitList');
 var Userplaylist = mongoose.model('Userplaylist');
 var groupChat = mongoose.model('groupChat');
+var OnlineUser = mongoose.model('OnlineUser');
 var config = require('../config.js');
 var request = require('request');
 var JwtStrategy = require('passport-jwt').Strategy,
@@ -837,6 +838,15 @@ router.get('/groupchat/delete/:id', function(req, res) {
         return res.status(200).json({ data: { message: "msg deletd", status: 200 } });
     });
 });
+
+router.get('/onlineusers/:page',function(req,res){
+    var page = req.params.page;
+    OnlineUser.find({}).sort([['username',1]]).exec(function(err,onlineusers){
+        if (err)    
+            return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+        return res.status(200).json({ data: { message: "user found", data: onlineusers, status: 200 } });
+    });
+})
 
 router.get('/upvote/:waitlist_id/:user_id', function(req, res) {
     var waitlist_id = req.params.waitlist_id;

@@ -2,6 +2,7 @@ var express = require('express');
 var router = express.Router();
 var mongoose = require('mongoose');
 var User = mongoose.model('User');
+var OnlineUser = mongoose.model('OnlineUser');
 var bCrypt = require('bcrypt-nodejs');
 var Mailer = require('../mailer.js');
 var config = require('../config.js');
@@ -9,6 +10,9 @@ var jwt = require('jsonwebtoken');
 var opts = {
     secretOrKey: 'superdupersecret'
 };
+var socket_io = require('socket.io');
+var io = socket_io();
+var socketApi = require("../socketApi.js");
 var JwtStrategy = require('passport-jwt').Strategy,
     ExtractJwt = require('passport-jwt').ExtractJwt;
 
@@ -49,7 +53,6 @@ module.exports = function(passport) {
         }
         User.findOne({ '$or': [{ 'username': name }, { 'email': name }], 'status': { '$ne': 0 } }, function(err, user) {
             // In case of any error, return using the done method
-            console.log(user);
             if (err)
                 return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
             // Username does not exist, log the error and redirect back
@@ -67,7 +70,23 @@ module.exports = function(passport) {
             if (user) {
                 var payload = { id: user.id };
                 var token = jwt.sign(payload, opts.secretOrKey);
-                return res.status(200).json({ data: { message: "User found", status: 200, data: user, token: token } });
+                var socketObj = {
+                    user_id: user._id,
+                    username: user.username,
+                    user_role: user.user_role
+                }
+                // var online_user = new OnlineUser();
+                // online_user.user_id = user._id;
+                // online_user.username = user.username;
+                // online_user.user_role = user.user_role;
+                // online_user.save(function(err) {
+                    // In case of any error, return using the done method
+                    // if (err)
+                        // return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+                    // console.log(socketObj);
+                    // socketApi.sendNotificationWithAlert('user_online', socketObj);
+                    return res.status(200).json({ data: { message: "User found", status: 200, data: user, token: token } });
+                // });
             }
         });
     });
@@ -160,7 +179,7 @@ module.exports = function(passport) {
     });
 
     var isValidPassword = function(user, password) {
-       // console.log(createHash(passport), user.password);
+        // console.log(createHash(passport), user.password);
         return bCrypt.compareSync(password, user.password);
     };
 

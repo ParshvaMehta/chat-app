@@ -69,6 +69,14 @@ var configurationSchema = new mongoose.Schema({
     is_defalut:{ type: Boolean, default: true}
 });
 
+var onlineUserSchema = new mongoose.Schema({
+    user_id:{ type: Schema.Types.ObjectId, ref: 'User' },
+    username : String,
+    user_role :{ type: Number, default: 0 },
+    socket_id : String,
+    avtar:String
+});
+
 mongoose.model('Post', postSchema);
 mongoose.model('User', userSchema);
 mongoose.model('Userplaylist', userPlaylistSchema);
@@ -76,3 +84,4 @@ mongoose.model('VideoPlayList', videoPlaylistSchema);
 mongoose.model('WaitList', waitListSchema);
 mongoose.model('groupChat', groupChatSchema);
 mongoose.model('Configuration', configurationSchema);
+mongoose.model('OnlineUser',onlineUserSchema);
