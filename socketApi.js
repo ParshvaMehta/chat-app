@@ -28,7 +28,8 @@ io.on('connection', function(socket) {
                     usrchat._id = group_chat._id;
                     usrchat.user_id = {
                         "username": user.username,
-                        "_id": msg.user_id
+                        "_id": msg.user_id,
+                        "user_role":msg.user_role
                     };
                     socketApi.sendNotification(usrchat);
                 });
