@@ -5,10 +5,13 @@ var User = mongoose.model('User');
 var groupChat = mongoose.model('groupChat');
 var OnlineUser = mongoose.model('OnlineUser');
 var socketApi = {};
-
+var onlineUserArr = [];
 socketApi.io = io;
 io.on('connection', function(socket) {
     console.log('A user connected');
+    if (onlineUserArr.indexOf(socket.id) < 0) {
+        onlineUserArr.push(socket.id);
+    }
     socket.on('send_msg', function(msg) {
         User.findById(msg.user_id, function(err, user) {
             if (err)
@@ -29,7 +32,8 @@ io.on('connection', function(socket) {
                     usrchat.user_id = {
                         "username": user.username,
                         "_id": msg.user_id,
-                        "user_role":msg.user_role
+                        "user_role": msg.user_role,
+                        "avtar": user.avtar
                     };
                     socketApi.sendNotification(usrchat);
                 });
@@ -37,23 +41,34 @@ io.on('connection', function(socket) {
         });
     });
     socket.on('userGetsOnlineServerAck', function(onlineUserData) {
-        var online_user = new OnlineUser();
-        online_user.user_id = onlineUserData._id;
-        online_user.username = onlineUserData.username;
-        online_user.user_role = onlineUserData.user_role;
-        online_user.socket_id= onlineUserData.socket_id;
-        online_user.avtar= onlineUserData.avtar;
-        online_user.save(function(err) {
-            socketApi.sendNotificationWithAlert('userGetsOnlineClientAck', onlineUserData);
+        OnlineUser.find({ socket_id: onlineUserData.socket_id }, function(err, onlineuser) {
+            if (err)
+                console.log('error in fetching the online_user!');
+            if (!onlineuser || onlineuser.length < 0) {
+                var online_user = new OnlineUser();
+                online_user.user_id = onlineUserData._id;
+                online_user.username = onlineUserData.username;
+                online_user.user_role = onlineUserData.user_role;
+                online_user.socket_id = onlineUserData.socket_id;
+                online_user.avtar = onlineUserData.avtar;
+                online_user.save(function(err) {
+                    socketApi.sendNotificationWithAlert('userGetsOnlineClientAck', onlineUserData);
+                });
+            }
         });
     });
-    socket.on('disconnect',function(){
+    socket.on('disconnect', function() {
         console.log(socket.id);
         var socket_id = socket.id;
-        OnlineUser.find({socket_id:socket_id}).remove().exec(function(err) {
-            if(err)
+        onlineUserArr.splice(onlineUserArr.indexOf(socket_id), 1);
+        //setTimeout(function() {
+        // if (onlineUserArr.indexOf(socket_id) < 0) {
+        OnlineUser.find({ socket_id: socket_id }).remove().exec(function(err) {
+            if (err)
                 console.log('error in removing the online_user!');
         });
+        // }
+        //}, 10000);
     });
 });
 
