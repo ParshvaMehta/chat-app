@@ -872,7 +872,6 @@ router.get('/upvote/:waitlist_id/:user_id', function(req, res) {
                 return res.status(200).json({ data: { data: err, message: "Something went wrong! please contact admin", status: 500 } });
             socketApi.sendNotificationWithAlert('voting_waitlist', data);
             return res.status(200).json({ data: { data: waitlist, message: "Upvote successfully", status: 200 } });
-
         })
     });
 });
@@ -908,6 +907,28 @@ router.get('/downvote/:waitlist_id/:user_id', function(req, res) {
     });
 });
 
+router.get('/grab/:waitlist_id/:user_id', function(req, res) {
+    var waitlist_id = req.params.waitlist_id;
+    var user_id = req.params.user_id;
+    var user = {
+        user_id: user_id
+    };
+    WaitList.findById(waitlist_id, function(err, waitlist) {
+        if (err)
+            return res.status(200).json({ data: { data: err, message: "Something went wrong! please contact admin", status: 500 } });
+        var grabArr = waitlist.grab.split(','),
+        grabIndex = grabArr.indexOf(user_id);
+        if (grabIndex < 0)
+                grabArr.push(user_id);
+        waitlist.grab = grabArr.join();
+        waitlist.save(function(err, data) {
+            if (err)
+                return res.status(200).json({ data: { data: err, message: "Something went wrong! please contact admin", status: 500 } });
+            socketApi.sendNotificationWithAlert('voting_waitlist', data);
+            return res.status(200).json({ data: { data: waitlist, message: "Grab successfully", status: 200 } });
+        })
+    });
+});
 
 
 module.exports = router;

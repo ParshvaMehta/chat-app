@@ -48,6 +48,7 @@ var waitListSchema = new mongoose.Schema({
     status: { type: Number, default: 0 },
     upvote: { type: String, default: '' },
     downvote: { type: String, default: '' },
+    grab: { type: String, default: '' },
     started: { type: Date }
 });
 

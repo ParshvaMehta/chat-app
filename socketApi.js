@@ -13,9 +13,11 @@ io.on('connection', function(socket) {
         onlineUserArr.push(socket.id);
     }
     socket.on('send_msg', function(msg) {
+    	console.log(msg);
         User.findById(msg.user_id, function(err, user) {
             if (err)
                 socketApi.sendNotification({ message: 'something went wrong', status: '500' });
+            console.log(user);
             if (user) {
                 var group_chat = new groupChat();
                 group_chat.user_id = msg.user_id;
