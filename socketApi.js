@@ -35,8 +35,9 @@ io.on('connection', function(socket) {
                         "username": user.username,
                         "_id": msg.user_id,
                         "user_role": msg.user_role,
-                        "avtar": user.avtar
+                        "avtar": user.avtar,
                     };
+                    usrchat.created_at= user.created_at;
                     socketApi.sendNotification(usrchat);
                 });
             }
