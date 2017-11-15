@@ -683,7 +683,6 @@ router.route('/uservideoplaylist/edit/:playlist_id')
         var playlist_id = req.params.playlist_id,
             name = req.body.name;
         Userplaylist.findById(playlist_id, function(err, userplaylist) {
-            userplaylist.user_id = playlist_id;
             userplaylist.name = name;
             userplaylist.save(function(err) {
                 if (err) {
