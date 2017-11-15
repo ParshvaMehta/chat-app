@@ -20,7 +20,7 @@ var multer = require('multer');
 var fs = require('fs');
 var socket_io = require('socket.io');
 var io = socket_io();
-var socketApi= require("../socketApi.js")
+var socketApi = require("../socketApi.js")
 var Configuration = mongoose.model('Configuration');
 var avtar_dir = __dirname + "/../public/images/user_avtar";
 
@@ -677,6 +677,39 @@ router.route('/uservideoplaylist')
             res.status(200).send({ message: 'Playlist create successfully', status: '200' });
         })
     });
+
+router.route('/uservideoplaylist/edit/:playlist_id')
+    .post(function(req, res) {
+        var playlist_id = req.params.playlist_id,
+            name = req.body.name;
+        Userplaylist.findById(playlist_id, function(err, userplaylist) {
+            userplaylist.user_id = playlist_id;
+            userplaylist.name = name;
+            userplaylist.save(function(err) {
+                if (err) {
+                    console.log('Error in Saving userplaylist: ' + err);
+                    res.status(200).send({ message: 'something went wrong', status: '500' });
+                    throw err;
+                }
+                res.status(200).send({ message: 'Playlist updated successfully', status: '200' });
+            });
+        });
+    });
+
+router.route('/uservideoplaylist/delete/:playlist_id')
+    .post(function(req, res) {
+        var playlist_id = req.params.playlist_id,
+            name = req.body.name;
+        Userplaylist.remove({ _id: playlist_id }, function(err) {
+            if (err) {
+                console.log('Error in Saving userplaylist: ' + err);
+                res.status(200).send({ message: 'something went wrong', status: '500' });
+                throw err;
+            }
+            res.status(200).send({ message: 'Playlist deleted successfully', status: '200' });
+        });
+    });
+
 router.get('/uservideoplaylist/:user_id', function(req, res) {
     var user_id = req.params.user_id;
     Userplaylist.find({ user_id: user_id }).populate('videoplaylists_id').sort([
@@ -839,10 +872,12 @@ router.get('/groupchat/delete/:id', function(req, res) {
     });
 });
 
-router.get('/onlineusers/:page',function(req,res){
+router.get('/onlineusers/:page', function(req, res) {
     var page = req.params.page;
-    OnlineUser.find({}).sort([['username',1]]).exec(function(err,onlineusers){
-        if (err)    
+    OnlineUser.find({}).sort([
+        ['username', 1]
+    ]).exec(function(err, onlineusers) {
+        if (err)
             return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
         return res.status(200).json({ data: { message: "user found", data: onlineusers, status: 200 } });
     });
@@ -917,9 +952,9 @@ router.get('/grab/:waitlist_id/:user_id', function(req, res) {
         if (err)
             return res.status(200).json({ data: { data: err, message: "Something went wrong! please contact admin", status: 500 } });
         var grabArr = waitlist.grab.split(','),
-        grabIndex = grabArr.indexOf(user_id);
+            grabIndex = grabArr.indexOf(user_id);
         if (grabIndex < 0)
-                grabArr.push(user_id);
+            grabArr.push(user_id);
         waitlist.grab = grabArr.join();
         waitlist.save(function(err, data) {
             if (err)
