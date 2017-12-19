@@ -383,8 +383,6 @@ router.route('/userplaylist')
 
                         });
                         // res.status(200).send({ "data": videoData, "duration":duration });
-
-
                     });
                 }
             });
@@ -397,7 +395,7 @@ router.route('/userplaylist')
 /* wait list api*/
 router.route('/waitlist')
     .get(function(req, res) {
-        WaitList.find({ status: 0 }).populate('videoplaylists_id').sort([
+        WaitList.find({ status: 0 }).populate('videoplaylists_id').populate('user_id').sort([
             ['created_at', 1]
         ]).limit(50).exec(function(err, waitlist) {
             if (err)
@@ -427,10 +425,11 @@ router.route('/waitlist')
                     if (err)
                         return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
                     if (waitlist && waitlist.length > 0) {
-                        return res.stFusatus(200).json({ message: "You are already in waitlist!", status: 200 });
+                        return res.status(200).json({ message: "You are already in waitlist!", status: 200 });
                     }
                     var waitList = new WaitList();
                     waitList.videoplaylists_id = videoplaylists_id;
+                    waitList.user_id = user_id;
                     waitList.save(function(err) {
                         if (err)
                             return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
@@ -490,7 +489,8 @@ router.get('/waitlist/current', function(req, res) {
                                 WaitList.findOne({ status: 0 }).populate('videoplaylists_id').sort([
                                     ['created_at', 1]
                                 ]).exec(function(err, current) {
-                                    if (current.videoplaylists_id && current.videoplaylists_id.user_id) {
+
+                                    if (current && current.videoplaylists_id && current.videoplaylists_id.user_id) {
                                         User.findById(current.videoplaylists_id.user_id, function(err, user) {
                                             if (err)
                                                 return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
@@ -750,11 +750,12 @@ router.post('/video/reorder', function(req, res) {
         old_order_id = req.body.old_order_id,
         new_order_id = req.body.new_order_id,
         userplaylist_id = req.body.userplaylist_id;
+    console.log(old_order_id < new_order_id);
     if (old_order_id > new_order_id) {
-
-        VideoPlayList.update({ order: { $gte: new_order_id, $lt: old_order_id }, userplaylist_id: userplaylist_id }, { $inc: { order: 1 } }, { multi: true }, function(err) {
+        VideoPlayList.update({ order: { $gte: new_order_id, $lt: old_order_id }, userplaylist_id: userplaylist_id }, { $inc: { order: 1 } }, { multi: true }, function(err, q) {
             if (err)
                 return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+            console.log(q);
             VideoPlayList.update({ _id: videoplaylists_id }, { order: new_order_id }, function(err, videos) {
                 if (err)
                     return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
@@ -963,6 +964,102 @@ router.get('/grab/:waitlist_id/:user_id', function(req, res) {
         })
     });
 });
+
+router.route('/userplaylist/edit')
+    .post(function(req, res) {
+        var url = req.body.url,
+            user_id = req.body.user_id,
+            userplaylist_id = req.body.userplaylist_id,
+            videoplaylists_id = req.body.videoplaylists,
+            id,
+            validUrl = false;
+
+        if (url.indexOf(config.constants.youtube_https_url_snippet) != -1) {
+            id = url.replace(config.constants.youtube_https_url_snippet, '');
+            validUrl = true;
+        }
+        if (url.indexOf(config.constants.youtube_http_url_snippet) != -1) {
+            id = url.replace(config.constants.youtube_http_url_snippet, '');
+            validUrl = true;
+        }
+        if (url.indexOf(config.constants.youtube_shorten_https_url_snippet) != -1) {
+            id = url.replace(config.constants.youtube_shorten_https_url_snippet, '');
+            validUrl = true;
+        }
+        if (url.indexOf(config.constants.youtube_shorten_http_url_snippet) != -1) {
+            id = url.replace(config.constants.youtube_shorten_http_url_snippet, '');
+            validUrl = true;
+        }
+        if (validUrl) {
+            VideoPlayList.find({
+                _id: videoplaylists_id
+            }, function(err, video) {
+                if (err)
+                    return res.status(200).json({ data: { message: "Something went wrong! please contact admin", status: 500 } });
+
+                var uri = "https://www.googleapis.com/youtube/v3/videos?id=" + id + "&key=" + config.constants.youtube_key + "&part=snippet,contentDetails,statistics,status,player,contentDetails&fields=items(id,snippet,statistics,status,player,contentDetails)";
+                request({
+                    uri: uri,
+                    method: "GET",
+                    timeout: 10000,
+                    followRedirect: true,
+                    maxRedirects: 10
+                }, function(error, response, body) {
+                    var videoData = JSON.parse(body).items[0];
+                    var duration = moment.duration(videoData.contentDetails.duration).asSeconds();
+                    var playlist = new VideoPlayList();
+                    playlist.user_id = user_id;
+                    playlist.youtube_video_id = videoData.id;
+                    playlist.title = videoData.snippet.title;
+                    playlist.thumbnail = videoData.snippet.thumbnails.high.url;
+                    playlist.duration = duration;
+                    playlist.embedHtml = videoData.player.embedHtml;
+                    playlist.url = url;
+                    playlist.userplaylist_id = userplaylist_id;
+                    Userplaylist.findById(userplaylist_id, function(err, userplaylists) {
+                        if (err) {
+                            console.log('Error in Saving playlist: ' + err);
+                            res.status(200).send({ message: 'something went wrong', status: '500' });
+                        }
+                        if (userplaylists) {
+                            var playlist = new VideoPlayList();
+                            playlist.user_id = user_id;
+                            playlist.youtube_video_id = videoData.id;
+                            playlist.title = videoData.snippet.title;
+                            playlist.thumbnail = videoData.snippet.thumbnails.high.url;
+                            playlist.duration = duration;
+                            playlist.embedHtml = videoData.player.embedHtml;
+                            playlist.url = url;
+                            playlist.userplaylist_id = userplaylist_id;
+                            playlist.order = userplaylists.total_video + 1;
+                            playlist.save(function(err) {
+                                if (err) {
+                                    console.log('Error in Saving playlist: ' + err);
+                                    res.status(200).send({ message: 'something went wrong', status: '500' });
+                                }
+                                Userplaylist.update({ _id: userplaylist_id }, { $inc: { total_video: 1 } }, function(err, u) {
+                                    if (err) {
+                                        console.log('Error in Saving playlist: ' + err);
+                                        res.status(200).send({ message: 'something went wrong', status: '500' });
+                                    }
+                                    res.status(200).send({ message: 'Video Added to your playlist', status: '200' });
+                                });
+                            });
+                        } else {
+                            return res.status(200).json({ data: { message: "User playlist not found", data: video, status: 200 } });
+
+                        }
+
+                    });
+                    // res.status(200).send({ "data": videoData, "duration":duration });
+                });
+
+            });
+
+        } else {
+            res.status(200).send({ 'message': 'Invalid url', 'status': '200' });
+        }
+    })
 
 
 module.exports = router;

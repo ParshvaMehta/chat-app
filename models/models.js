@@ -49,7 +49,8 @@ var waitListSchema = new mongoose.Schema({
     upvote: { type: String, default: '' },
     downvote: { type: String, default: '' },
     grab: { type: String, default: '' },
-    started: { type: Date }
+    started: { type: Date },
+    user_id: { type: Schema.Types.ObjectId, ref: 'User' }
 });
 
 var groupChatSchema = new mongoose.Schema({
